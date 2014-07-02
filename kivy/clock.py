@@ -246,7 +246,7 @@ class ClockEvent(object):
         self._last_dt = starttime
         self._dt = 0.
         if trigger:
-            clock._events.add(self)
+            clock._events.append(self)
 
     def __call__(self, *largs):
         # if the event is not yet triggered, do it !
@@ -254,7 +254,7 @@ class ClockEvent(object):
             self._is_triggered = True
             # update starttime
             self._last_dt = self.clock._last_tick
-            self.clock._events.add(self)
+            self.clock._events.append(self)
             return True
 
     def get_callback(self):
@@ -281,7 +281,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 self.clock._events.remove(self)
-            except KeyError:
+            except ValueError:
                 pass
 
     def release(self):
@@ -309,7 +309,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 remove(self)
-            except KeyError:
+            except ValueError:
                 pass
             return False
 
@@ -321,7 +321,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 remove(self)
-            except KeyError:
+            except ValueError:
                 pass
 
         # call the callback
@@ -332,7 +332,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 remove(self)
-            except KeyError:
+            except ValueError:
                 pass
             return False
 
@@ -364,7 +364,7 @@ class ClockBase(_ClockBase):
         self._last_fps_tick = None
         self._frames = 0
         self._frames_displayed = 0
-        self._events = set()
+        self._events = []
         self._max_fps = float(Config.getint('graphics', 'maxfps'))
 
         #: .. versionadded:: 1.0.5
