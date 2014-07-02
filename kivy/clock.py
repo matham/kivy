@@ -246,7 +246,7 @@ class ClockEvent(object):
         self._last_dt = starttime
         self._dt = 0.
         if trigger:
-            clock._events.append(self)
+            clock._events.add(self)
 
     def __call__(self, *largs):
         # if the event is not yet triggered, do it !
@@ -254,7 +254,7 @@ class ClockEvent(object):
             self._is_triggered = True
             # update starttime
             self._last_dt = self.clock._last_tick
-            self.clock._events.append(self)
+            self.clock._events.add(self)
             return True
 
     def get_callback(self):
@@ -281,7 +281,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 self.clock._events.remove(self)
-            except ValueError:
+            except KeyError:
                 pass
 
     def release(self):
@@ -309,7 +309,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 remove(self)
-            except ValueError:
+            except KeyError:
                 pass
             return False
 
@@ -321,7 +321,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 remove(self)
-            except ValueError:
+            except KeyError:
                 pass
 
         # call the callback
@@ -332,7 +332,7 @@ class ClockEvent(object):
             self._is_triggered = False
             try:
                 remove(self)
-            except ValueError:
+            except KeyError:
                 pass
             return False
 
@@ -364,7 +364,7 @@ class ClockBase(_ClockBase):
         self._last_fps_tick = None
         self._frames = 0
         self._frames_displayed = 0
-        self._events = blist()
+        self._events = set()
         self._max_fps = float(Config.getint('graphics', 'maxfps'))
 
         #: .. versionadded:: 1.0.5
@@ -508,11 +508,11 @@ class ClockBase(_ClockBase):
             callback.cancel()
         else:
             if all:
-                for ev in blist(self._events):
+                for ev in list(self._events):
                     if ev.get_callback() is callback:
                         ev.cancel()
             else:
-                for ev in blist(self._events):
+                for ev in list(self._events):
                     if ev.get_callback() is callback:
                         ev.cancel()
                         break
@@ -520,14 +520,14 @@ class ClockBase(_ClockBase):
     def _release_references(self):
         # call that function to release all the direct reference to any
         # callback and replace it with a weakref
-        for ev in blist(self._events):
+        for ev in list(self._events):
             if ev.callback is not None:
                 ev.release()
 
     def _process_events(self):
         events = self._events
         remove = events.remove
-        for event in blist(events):
+        for event in list(events):
             if event in events:
                 event.tick(self._last_tick, remove)
 
@@ -547,7 +547,7 @@ class ClockBase(_ClockBase):
 
             # search event that have timeout = -1
             found = False
-            for event in blist(events):
+            for event in list(events):
                 if event.timeout != -1:
                     continue
                 found = True
