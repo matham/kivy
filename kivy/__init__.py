@@ -181,18 +181,18 @@ def kivy_usage():
 
 #: Global settings options for kivy
 kivy_options = {
-    'window': ('egl_rpi', 'pygame', 'sdl', 'x11', 'sdl2'),
-    'text': ('pil', 'pygame', 'sdlttf', 'sdl2'),
+    'window': ('egl_rpi', 'sdl2', 'pygame', 'sdl', 'x11'),
+    'text': ('pil', 'sdl2', 'pygame', 'sdlttf'),
     'video': (
         'gstplayer', 'ffmpeg', 'ffpyplayer', 'gi', 'pygst', 'pyglet',
         'null'),
     'audio': ('gstplayer', 'pygame', 'gi', 'pygst', 'ffpyplayer', 'sdl'),
-    'image': ('tex', 'imageio', 'dds', 'gif', 'pil', 'pygame', 'ffpy', 'sdl2'),
+    'image': ('tex', 'imageio', 'dds', 'gif', 'sdl2', 'pygame', 'pil', 'ffpy'),
     'camera': ('opencv', 'gi', 'pygst', 'videocapture', 'avfoundation'),
     'spelling': ('enchant', 'osxappkit', ),
     'clipboard': (
-        'android', 'winctypes', 'dbusklipper', 'nspaste', 'pygame',
-        'sdl2', 'dummy'), }
+        'android', 'winctypes', 'dbusklipper', 'nspaste', 'sdl2', 'pygame',
+        'dummy'), }
 
 # Read environment
 for option in kivy_options:
@@ -282,7 +282,9 @@ if not environ.get('KIVY_DOC_INCLUDE'):
     Logger.setLevel(level=level)
 
     # Can be overrided in command line
-    if 'KIVY_UNITTEST' not in environ and 'KIVY_PACKAGING' not in environ:
+    if ('KIVY_UNITTEST' not in environ and
+        'KIVY_PACKAGING' not in environ and
+        'KIVY_NO_ARGS' not in environ):
         # save sys argv, otherwize, gstreamer use it and display help..
         sys_argv = sys.argv
         sys.argv = sys.argv[:1]

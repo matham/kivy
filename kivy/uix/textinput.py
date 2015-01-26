@@ -1162,8 +1162,6 @@ class TextInput(FocusBehavior, Widget):
         if not group:
             return
 
-        if not self._win:
-            self._set_window()
         self.remove_widget(self._handle_middle)
 
         handle_left = self._handle_left
@@ -1194,9 +1192,6 @@ class TextInput(FocusBehavior, Widget):
             return
 
         win = self._win
-        if not win:
-            self._set_window()
-            win = self._win
 
         handle_right = self._handle_right
         handle_left = self._handle_left
@@ -2516,7 +2511,7 @@ class TextInput(FocusBehavior, Widget):
     :attr:`text` a :class:`~kivy.properties.StringProperty`.
     '''
 
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto')
     '''Filename of the font to use. The path can be absolute or relative.
     Relative paths are resolved by the :func:`~kivy.resources.resource_find`
     function.
@@ -2535,7 +2530,7 @@ class TextInput(FocusBehavior, Widget):
         .. |unicodechar| image:: images/unicode-char.png
 
     :attr:`font_name` is a :class:`~kivy.properties.StringProperty` and
-    defaults to 'DroidSans'.
+    defaults to 'Roboto'.
     '''
 
     font_size = NumericProperty('15sp')

@@ -3,6 +3,11 @@
 # http://kivy.org/
 #
 
+MIN_CYTHON_VERSION = (0, 20, 0)
+MIN_CYTHON_STRING = '.'.join(map(str, MIN_CYTHON_VERSION))
+MAX_CYTHON_VERSION = (0, 21, 1)
+MAX_CYTHON_STRING = '.'.join(map(str, MAX_CYTHON_VERSION))
+
 import sys
 
 from copy import deepcopy
@@ -21,14 +26,22 @@ else:
 
 def getoutput(cmd):
     import subprocess
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    return p.communicate()[0]
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr = subprocess.PIPE)
+    p.wait()
+    if p.returncode: # if not returncode == 0
+        print('WARNING: A problem occured while running {0} (code {1})\n'.format(cmd,p.returncode))
+        stderr_content = p.stderr.read()
+        if stderr_content:
+            print('{0}\n'.format(stderr_content))
+        return ""
+    return p.stdout.read()
 
 
 def pkgconfig(*packages, **kw):
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
     cmd = 'pkg-config --libs --cflags {}'.format(' '.join(packages))
-    for token in getoutput(cmd).split():
+    results = getoutput(cmd).split()
+    for token in results:
         ext = token[:2].decode('utf-8')
         flag = flag_map.get(ext)
         if not flag:
@@ -72,7 +85,7 @@ c_options['use_sdl2'] = None
 c_options['use_ios'] = False
 c_options['use_mesagl'] = False
 c_options['use_x11'] = False
-c_options['use_gstreamer'] = False
+c_options['use_gstreamer'] = None
 c_options['use_avfoundation'] = platform == 'darwin'
 c_options['use_osx_frameworks'] = platform == 'darwin'
 
@@ -95,6 +108,18 @@ else:
         # check for cython
         from Cython.Distutils import build_ext
         have_cython = True
+        import Cython
+        cy_version_str = Cython.__version__
+        cy_version = tuple(map(int, cy_version_str.split('.')))
+        print('\nDetected Cython version {}'.format(cy_version_str))
+        if cy_version < MIN_CYTHON_VERSION:
+            print('  This version of Cython is not compatible with Kivy. ' +
+                  'Please upgrade to at least {}'.format(MIN_CYTHON_STRING))
+            raise ImportError('Incompatible Cython Version')
+        if cy_version > MAX_CYTHON_VERSION:
+            print('  This version of Cython is untested with Kivy. If you ' +
+                  'experience issues, please downgrade to {}'
+                  .format(MAX_CYTHON_STRING))
     except ImportError:
         print('\nCython is missing, its required for compiling kivy !\n\n')
         raise
@@ -269,7 +294,7 @@ if platform not in ('ios', 'android') and c_options['use_gstreamer'] in (None, T
 # detect SDL2, only on desktop
 # works if we forced the options or in autodetection
 sdl2_flags = {}
-if platform not in ('ios', 'android') and c_options['use_gstreamer'] in (None, True):
+if platform not in ('ios', 'android') and c_options['use_sdl2'] in (None, True):
 
     if c_options['use_osx_frameworks'] and platform == 'darwin':
         # check the existence of frameworks
@@ -625,14 +650,15 @@ if c_options['use_sdl']:
 if c_options['use_sdl2']:
     sdl2_flags = determine_sdl2()
     if sdl2_flags:
+        sdl2_depends = {'depends': ['libs/sdl2.pxi']}
         sources['core/window/_window_sdl2.pyx'] = merge(
-            base_flags, gl_flags, sdl2_flags)
+            base_flags, gl_flags, sdl2_flags, sdl2_depends)
         sources['core/image/_img_sdl2.pyx'] = merge(
-            base_flags, gl_flags, sdl2_flags)
+            base_flags, gl_flags, sdl2_flags, sdl2_depends)
         sources['core/text/_text_sdl2.pyx'] = merge(
-            base_flags, gl_flags, sdl2_flags)
+            base_flags, gl_flags, sdl2_flags, sdl2_depends)
         sources['core/clipboard/_clipboard_sdl2.pyx'] = merge(
-            base_flags, gl_flags, sdl2_flags)
+            base_flags, gl_flags, sdl2_flags, sdl2_depends)
 
 if platform in ('darwin', 'ios'):
     # activate ImageIO provider for our core image
