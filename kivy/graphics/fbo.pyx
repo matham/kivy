@@ -323,7 +323,7 @@ cdef class Fbo(RenderContext):
         else:
             glClear(GL_COLOR_BUFFER_BIT)
 
-    cdef void apply(self):
+    cdef void apply(self) except *:
         if self.flags & GI_NEEDS_UPDATE:
             self.bind()
             RenderContext.apply(self)
@@ -423,7 +423,7 @@ cdef class Fbo(RenderContext):
     cpdef get_pixel_color(self, int wx, int wy):
         """Get the color of the pixel with specified window
         coordinates wx, wy. It returns result in RGBA format.
- 
+
         .. versionadded:: 1.8.0
         """
         if wx > self._width or wy > self._height:
@@ -434,6 +434,6 @@ cdef class Fbo(RenderContext):
         data = py_glReadPixels(wx, wy, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
         self.release()
         raw_data = str(data)
-        
+
         return [ord(i) for i in raw_data]
 
