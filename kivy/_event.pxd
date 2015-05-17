@@ -15,6 +15,7 @@ cdef class EventDispatcher(ObjectWithUid):
     cdef dict __storage
     cdef object __weakref__
     cdef public set _kwargs_applied_init
+    cpdef rebind_property(self, name)
     cpdef dict properties(self)
 
 
