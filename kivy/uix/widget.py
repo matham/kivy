@@ -333,6 +333,7 @@ class Widget(WidgetBase):
         on_args = {k: v for k, v in kwargs.items() if k[:3] == 'on_'}
         for key in on_args:
             del kwargs[key]
+        parent = kwargs.pop('parent', None)
 
         super(Widget, self).__init__(**kwargs)
 
@@ -340,6 +341,8 @@ class Widget(WidgetBase):
         if self.canvas is None:
             self.canvas = Canvas(opacity=self.opacity)
 
+        if parent is not None:
+            parent.add_widget(self)
         # Apply all the styles.
         if not no_builder:
             Builder.apply(self, ignored_consts=self._kwargs_applied_init)
