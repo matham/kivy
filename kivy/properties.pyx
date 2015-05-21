@@ -483,6 +483,10 @@ cdef class Property:
             return self
         return self.get(obj)
 
+    cpdef dispatch_count(self, EventDispatcher obj):
+        cdef PropertyStorage ps = obj.__storage[self._name]
+        return ps.observers.count
+
     cdef compare_value(self, a, b):
         try:
             return bool(a == b)
@@ -569,6 +573,12 @@ cdef class Property:
 
         '''
         cdef PropertyStorage ps = obj.__storage[self._name]
+        ps.observers.dispatch(obj, ps.value, None, None, 0)
+
+    cpdef dispatch_stale(self, EventDispatcher obj, int count):
+        cdef PropertyStorage ps = obj.__storage[self._name]
+        if count != ps.observers.count:
+            return True
         ps.observers.dispatch(obj, ps.value, None, None, 0)
 
 
