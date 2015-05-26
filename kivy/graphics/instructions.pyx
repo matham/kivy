@@ -20,6 +20,7 @@ from kivy.compat import PY2
 from kivy.logger import Logger
 from kivy.graphics.context cimport get_context, Context
 from weakref import proxy
+from kivy.lang import Builder
 
 
 cdef int _need_reset_gl = 1
@@ -59,6 +60,9 @@ cdef class Instruction(ObjectWithUid):
 
     cdef int apply(self) except -1:
         return 0
+
+    def  __dealloc__(self):
+        Builder.unbind_widget(self.uid)
 
     IF DEBUG:
         cpdef flag_update(self, int do_parent=1, list _instrs=None):
