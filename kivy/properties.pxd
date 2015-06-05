@@ -25,7 +25,11 @@ cdef class Property:
     cdef object errorhandler
     cdef int errorvalue_set
     cdef public object defaultvalue
+    cdef PropertyStorage ps
+    cdef EventDispatcher last_obj
+
     cdef init_storage(self, EventDispatcher obj, PropertyStorage storage)
+    cdef inline void ensure_storage(self, EventDispatcher obj)
     cpdef link(self, EventDispatcher obj, str name)
     cpdef link_deps(self, EventDispatcher obj, str name)
     cpdef bind(self, EventDispatcher obj, observer)

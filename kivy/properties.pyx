@@ -240,6 +240,7 @@ cpdef float dpi2px(value, ext):
     elif ext == 'mm':
         return rv * g_dpi / 25.4
 
+
 cdef class Property:
     '''Base class for building more complex properties.
 
@@ -303,6 +304,8 @@ cdef class Property:
         self.errorvalue = None
         self.errorhandler = None
         self.errorvalue_set = 0
+        self.ps = None
+        self.last_obj = None
 
 
     def __init__(self, defaultvalue, **kw):
@@ -326,6 +329,11 @@ cdef class Property:
         storage.value = self.convert(obj, self.defaultvalue)
         storage.observers = EventObservers()
 
+    cdef inline void ensure_storage(self, EventDispatcher obj):
+        if obj is not self.last_obj:
+            self.last_obj = obj
+            self.ps = self.last_obj.__storage[self._name]
+
     cpdef link(self, EventDispatcher obj, str name):
         '''Link the instance with its real name.
 
@@ -346,8 +354,8 @@ cdef class Property:
         storage space of the property for this specific widget instance.
         '''
         cdef PropertyStorage d
-        if self._name != '' and name != self._name:
-            d = obj.__storage.get(self._name, PropertyStorage())
+        if self._name != '' and name != self._name and self._name in obj.__storage:
+            d = obj.__storage[self._name]
         else:
             d = PropertyStorage()
         self._name = name
@@ -360,8 +368,8 @@ cdef class Property:
     cpdef bind(self, EventDispatcher obj, observer):
         '''Add a new observer to be called only when the value is changed.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.bind(WeakMethod(observer), 1)
+        self.ensure_storage(obj)
+        self.ps.observers.bind(WeakMethod(observer), 1)
 
     cpdef fast_bind(self, EventDispatcher obj, observer, tuple largs=(), dict kwargs={}):
         '''Similar to bind, except it doesn't check if the observer already
@@ -369,29 +377,29 @@ cdef class Property:
         fast_unbind or unbind_uid should be called when unbinding.
         It returns a unique positive uid to be used with unbind_uid.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        return ps.observers.fast_bind(observer, largs, kwargs, 0)
+        self.ensure_storage(obj)
+        return self.ps.observers.fast_bind(observer, largs, kwargs, 0)
 
     cpdef unbind(self, EventDispatcher obj, observer):
         '''Remove the observer from our widget observer list.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.unbind(observer, 1, 0)
+        self.ensure_storage(obj)
+        self.ps.observers.unbind(observer, 1, 0)
 
     cpdef fast_unbind(self, EventDispatcher obj, observer, tuple largs=(), dict kwargs={}):
         '''Remove the observer from our widget observer list bound with
         fast_bind. It removes the first match it finds, as opposed to unbind
         which searches for all matches.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.fast_unbind(observer, largs, kwargs)
+        self.ensure_storage(obj)
+        self.ps.observers.fast_unbind(observer, largs, kwargs)
 
     cpdef unbind_uid(self, EventDispatcher obj, object uid):
         '''Remove the observer from our widget observer list bound with
         fast_bind using the uid.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.unbind_uid(uid)
+        self.ensure_storage(obj)
+        self.ps.observers.unbind_uid(uid)
 
     def __set__(self, EventDispatcher obj, val):
         self.set(obj, val)
@@ -407,9 +415,9 @@ cdef class Property:
     cpdef set(self, EventDispatcher obj, value):
         '''Set a new value for the property.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         value = self.convert(obj, value)
-        realvalue = ps.value
+        realvalue = self.ps.value
         if not self.force_dispatch and self.compare_value(realvalue, value):
             return False
 
@@ -425,19 +433,18 @@ cdef class Property:
             else:
                 raise e
 
-        ps.value = value
+        self.ps.value = value
         self.dispatch(obj)
         return True
 
     cpdef get(self, EventDispatcher obj):
         '''Return the value of the property.
         '''
-        cdef PropertyStorage ps
         try:
-            ps = obj.__storage[self._name]
+            self.ensure_storage(obj)
         except KeyError:
             raise AttributeError(self._name)
-        return ps.value
+        return self.ps.value
 
     #
     # Private part
@@ -480,8 +487,8 @@ cdef class Property:
             prop.dispatch(button)
 
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.dispatch(obj, ps.value, None, None, 0)
+        self.ensure_storage(obj)
+        self.ps.observers.dispatch(obj, self.ps.value, None, None, 0)
 
 
 cdef class NumericProperty(Property):
@@ -547,8 +554,8 @@ cdef class NumericProperty(Property):
         return self.parse_list(obj, value[:-2], value[-2:])
 
     cdef float parse_list(self, EventDispatcher obj, value, ext):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.numeric_fmt = ext
+        self.ensure_storage(obj)
+        self.ps.numeric_fmt = ext
         return dpi2px(value, ext)
 
     def get_format(self, EventDispatcher obj):
@@ -557,8 +564,8 @@ cdef class NumericProperty(Property):
         the value have not been changed at all). Otherwise, it can be one of
         'in', 'pt', 'cm', 'mm'.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        return ps.numeric_fmt
+        self.ensure_storage(obj)
+        return self.ps.numeric_fmt
 
 
 cdef class StringProperty(Property):
@@ -680,8 +687,8 @@ cdef class ListProperty(Property):
 
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableList(self, obj, ps.value)
+        self.ensure_storage(obj)
+        self.ps.value = ObservableList(self, obj, self.ps.value)
 
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
@@ -787,8 +794,8 @@ cdef class DictProperty(Property):
 
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableDict(self, obj, ps.value)
+        self.ensure_storage(obj)
+        self.ps.value = ObservableDict(self, obj, self.ps.value)
 
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
@@ -952,15 +959,15 @@ cdef class BoundedNumericProperty(Property):
 
         .. versionadded:: 1.1.0
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         if value is None:
-            ps.bnum_use_min = 0
+            self.ps.bnum_use_min = 0
         elif type(value) is float:
-            ps.bnum_f_min = value
-            ps.bnum_use_min = 2
+            self.ps.bnum_f_min = value
+            self.ps.bnum_use_min = 2
         else:
-            ps.bnum_min = value
-            ps.bnum_use_min = 1
+            self.ps.bnum_min = value
+            self.ps.bnum_use_min = 1
 
     def get_min(self, EventDispatcher obj):
         '''Return the minimum value acceptable for the BoundedNumericProperty
@@ -975,11 +982,11 @@ cdef class BoundedNumericProperty(Property):
 
         .. versionadded:: 1.1.0
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.bnum_use_min == 1:
-            return ps.bnum_min
-        elif ps.bnum_use_min == 2:
-            return ps.bnum_f_min
+        self.ensure_storage(obj)
+        if self.ps.bnum_use_min == 1:
+            return self.ps.bnum_min
+        elif self.ps.bnum_use_min == 2:
+            return self.ps.bnum_f_min
 
     def set_max(self, EventDispatcher obj, value):
         '''Change the maximum value acceptable for the BoundedNumericProperty,
@@ -992,15 +999,15 @@ cdef class BoundedNumericProperty(Property):
 
         .. versionadded:: 1.1.0
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         if value is None:
-            ps.bnum_use_max = 0
+            self.ps.bnum_use_max = 0
         elif type(value) is float:
-            ps.bnum_f_max = value
-            ps.bnum_use_max = 2
+            self.ps.bnum_f_max = value
+            self.ps.bnum_use_max = 2
         else:
-            ps.bnum_max = value
-            ps.bnum_use_max = 1
+            self.ps.bnum_max = value
+            self.ps.bnum_use_max = 1
 
     def get_max(self, EventDispatcher obj):
         '''Return the maximum value acceptable for the BoundedNumericProperty
@@ -1009,36 +1016,36 @@ cdef class BoundedNumericProperty(Property):
 
         .. versionadded:: 1.1.0
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.bnum_use_max == 1:
-            return ps.bnum_max
-        if ps.bnum_use_max == 2:
-            return ps.bnum_f_max
+        self.ensure_storage(obj)
+        if self.ps.bnum_use_max == 1:
+            return self.ps.bnum_max
+        if self.ps.bnum_use_max == 2:
+            return self.ps.bnum_f_max
 
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
             return True
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.bnum_use_min == 1:
-            _min = ps.bnum_min
+        self.ensure_storage(obj)
+        if self.ps.bnum_use_min == 1:
+            _min = self.ps.bnum_min
             if value < _min:
                 raise ValueError('%s.%s is below the minimum bound (%d)' % (
                     obj.__class__.__name__,
                     self.name, _min))
-        elif ps.bnum_use_min == 2:
-            _f_min = ps.bnum_f_min
+        elif self.ps.bnum_use_min == 2:
+            _f_min = self.ps.bnum_f_min
             if value < _f_min:
                 raise ValueError('%s.%s is below the minimum bound (%f)' % (
                     obj.__class__.__name__,
                     self.name, _f_min))
-        if ps.bnum_use_max == 1:
-            _max = ps.bnum_max
+        if self.ps.bnum_use_max == 1:
+            _max = self.ps.bnum_max
             if value > _max:
                 raise ValueError('%s.%s is above the maximum bound (%d)' % (
                     obj.__class__.__name__,
                     self.name, _max))
-        elif ps.bnum_use_max == 2:
-            _f_max = ps.bnum_f_max
+        elif self.ps.bnum_use_max == 2:
+            _f_max = self.ps.bnum_f_max
             if value > _f_max:
                 raise ValueError('%s.%s is above the maximum bound (%f)' % (
                     obj.__class__.__name__,
@@ -1103,13 +1110,13 @@ cdef class OptionProperty(Property):
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
             return True
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        if value not in ps.options:
+        self.ensure_storage(obj)
+        if value not in self.ps.options:
             raise ValueError('%s.%s is set to an invalid option %r. '
                              'Must be one of: %s' % (
                              obj.__class__.__name__,
                              self.name,
-                             value, ps.options))
+                             value, self.ps.options))
 
     property options:
         '''Return the options available.
@@ -1163,8 +1170,8 @@ cdef class ReferenceListProperty(Property):
 
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableReferenceList(self, obj, ps.value)
+        self.ensure_storage(obj)
+        self.ps.value = ObservableReferenceList(self, obj, self.ps.value)
 
     cpdef link_deps(self, EventDispatcher obj, str name):
         cdef Property prop
@@ -1173,17 +1180,17 @@ cdef class ReferenceListProperty(Property):
             prop.fast_bind(obj, self.trigger_change)
 
     cpdef trigger_change(self, EventDispatcher obj, value):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.stop_event:
+        self.ensure_storage(obj)
+        if self.ps.stop_event:
             return
-        p = ps.properties
+        p = self.ps.properties
 
         try:
-            ps.value.__setslice__(0, len(p),
+            self.ps.value.__setslice__(0, len(p),
                     [prop.get(obj) for prop in p],
                     update_properties=False)
         except AttributeError:
-            ps.value.__setitem__(slice(len(p)),
+            self.ps.value.__setitem__(slice(len(p)),
                     [prop.get(obj) for prop in p],
                     update_properties=False)
 
@@ -1197,8 +1204,8 @@ cdef class ReferenceListProperty(Property):
         return list(value)
 
     cdef check(self, EventDispatcher obj, value):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        if len(value) != len(ps.properties):
+        self.ensure_storage(obj)
+        if len(value) != len(self.ps.properties):
             raise ValueError('%s.%s value length is immutable' % (
                 obj.__class__.__name__,
                 self.name))
@@ -1206,58 +1213,58 @@ cdef class ReferenceListProperty(Property):
     cpdef set(self, EventDispatcher obj, _value):
         cdef int idx
         cdef list value
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         value = self.convert(obj, _value)
-        if not self.force_dispatch and self.compare_value(ps.value, value):
+        if not self.force_dispatch and self.compare_value(self.ps.value, value):
             return False
         self.check(obj, value)
         # prevent dependency loop
-        ps.stop_event = 1
-        props = ps.properties
+        self.ps.stop_event = 1
+        props = self.ps.properties
         for idx in xrange(len(props)):
             prop = props[idx]
             x = value[idx]
             prop.set(obj, x)
-        ps.stop_event = 0
+        self.ps.stop_event = 0
         try:
-            ps.value.__setslice__(0, len(value), value,
+            self.ps.value.__setslice__(0, len(value), value,
                     update_properties=False)
         except AttributeError:
-            ps.value.__setitem__(slice(len(value)), value,
+            self.ps.value.__setitem__(slice(len(value)), value,
                     update_properties=False)
         self.dispatch(obj)
         return True
 
     cpdef setitem(self, EventDispatcher obj, key, value):
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         cdef bint res = False
 
-        ps.stop_event = 1
+        self.ps.stop_event = 1
         if isinstance(key, slice):
-            props = ps.properties[key]
+            props = self.ps.properties[key]
             for index in xrange(len(props)):
                 prop = props[index]
                 x = value[index]
                 res = prop.set(obj, x) or res
         else:
-            prop = ps.properties[key]
+            prop = self.ps.properties[key]
             res = prop.set(obj, value)
-        ps.stop_event = 0
+        self.ps.stop_event = 0
         if res:
             self.dispatch(obj)
 
     cpdef get(self, EventDispatcher obj):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        cdef tuple p = ps.properties
+        self.ensure_storage(obj)
+        cdef tuple p = self.ps.properties
         try:
-            ps.value.__setslice__(0, len(p),
+            self.ps.value.__setslice__(0, len(p),
                     [prop.get(obj) for prop in p],
                     update_properties=False)
         except AttributeError:
-            ps.value.__setitem__(slice(len(p)),
+            self.ps.value.__setitem__(slice(len(p)),
                     [prop.get(obj) for prop in p],
                     update_properties=False)
-        return ps.value
+        return self.ps.value
 
 cdef class AliasProperty(Property):
     '''Create a property with a custom getter and setter.
@@ -1326,29 +1333,29 @@ cdef class AliasProperty(Property):
             oprop.fast_bind(obj, self.trigger_change)
 
     cpdef trigger_change(self, EventDispatcher obj, value):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.alias_initial = 1
+        self.ensure_storage(obj)
+        self.ps.alias_initial = 1
         dvalue = self.get(obj)
-        if ps.value != dvalue:
-            ps.value = dvalue
+        if self.ps.value != dvalue:
+            self.ps.value = dvalue
             self.dispatch(obj)
 
     cdef check(self, EventDispatcher obj, value):
         return True
 
     cpdef get(self, EventDispatcher obj):
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         if self.use_cache:
-            if ps.alias_initial:
-                ps.value = ps.getter(obj)
-                ps.alias_initial = 0
-            return ps.value
-        return ps.getter(obj)
+            if self.ps.alias_initial:
+                self.ps.value = self.ps.getter(obj)
+                self.ps.alias_initial = 0
+            return self.ps.value
+        return self.ps.getter(obj)
 
     cpdef set(self, EventDispatcher obj, value):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.setter(obj, value):
-            ps.value = self.get(obj)
+        self.ensure_storage(obj)
+        if self.ps.setter(obj, value):
+            self.ps.value = self.get(obj)
             self.dispatch(obj)
 
 cdef class VariableListProperty(Property):
@@ -1396,8 +1403,8 @@ cdef class VariableListProperty(Property):
 
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableList(self, obj, ps.value)
+        self.ensure_storage(obj)
+        self.ps.value = ObservableList(self, obj, self.ps.value)
 
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
@@ -1641,7 +1648,6 @@ cdef class ConfigParserProperty(Property):
 
     cpdef link_deps(self, EventDispatcher obj, str name):
         # initialize the config objects
-        cdef PropertyStorage ps
         Property.link_deps(self, obj, name)
         self.obj = ref(obj)
 
@@ -1652,10 +1658,10 @@ cdef class ConfigParserProperty(Property):
             self.config.adddefaultsection(self.section)
             self.config.setdefault(self.section, self.key, self.defaultvalue)
 
-            ps = obj.__storage[self._name]
-            ps.value = self._parse_str(self.config.get(self.section, self.key))
+            self.ensure_storage(obj)
+            self.ps.value = self._parse_str(self.config.get(self.section, self.key))
             # in case the value changed, save it
-            self.config.set(self.section, self.key, ps.value)
+            self.config.set(self.section, self.key, self.ps.value)
             self.last_value = self.config.get(self.section, self.key)
             self.config.add_callback(self._edit_setting, self.section, self.key)
             self.config.write()
@@ -1708,11 +1714,11 @@ cdef class ConfigParserProperty(Property):
         # Takes the a python object of the type used by this property
         # (see :attr:`val_type`), and saves it as a string in the config parser
         # (if available) and sets itself to this value.
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         cdef object orig_value = value
 
         value = self._parse_str(value)
-        realvalue = ps.value
+        realvalue = self.ps.value
         if self.compare_value(realvalue, value):
             fd = self.force_dispatch
             if not fd and self.compare_value(orig_value, value):
@@ -1744,7 +1750,7 @@ cdef class ConfigParserProperty(Property):
                 raise ValueError('{} is not allowed for {}.{}'.
                 format(value, obj.__class__.__name__, self.name))
 
-        ps.value = value
+        self.ps.value = value
         if self.config is not None:
             self.config.set(self.section, self.key, value)
             self.config.write()
@@ -1772,7 +1778,7 @@ cdef class ConfigParserProperty(Property):
         '''
         cdef EventDispatcher obj = self.obj()
         cdef object value
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        self.ensure_storage(obj)
         if self.config is config:
             return
 
@@ -1782,7 +1788,7 @@ cdef class ConfigParserProperty(Property):
         self.config = config
         if self.config is not None:
             self.config.adddefaultsection(self.section)
-            self.config.setdefault(self.section, self.key, ps.value)
+            self.config.setdefault(self.section, self.key, self.ps.value)
             self.config.write()
             self.config.add_callback(self._edit_setting, self.section,
                                      self.key)
