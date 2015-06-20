@@ -63,6 +63,7 @@ import kivy.tools.packaging.pyinstaller_hooks
 import kivy.input.recorder
 import kivy.interactive
 import kivy.garden
+import kivy.tools.kvcompiler
 from kivy.factory import Factory
 from kivy.lib import osc, ddsfile, mtdev
 
