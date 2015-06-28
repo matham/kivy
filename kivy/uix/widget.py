@@ -206,7 +206,7 @@ at the parent's right at each layout update.
 
 __all__ = ('Widget', 'WidgetException')
 
-from kivy.event import EventDispatcher
+from kivy.uix._widget import WidgetBase as CyWidgetBase
 from kivy.factory import Factory
 from kivy.properties import (
     NumericProperty, StringProperty, AliasProperty, ReferenceListProperty,
@@ -253,8 +253,8 @@ class WidgetMetaclass(type):
         Factory.register(name, cls=mcs)
 
 
-#: Base class used for Widget, that inherits from :class:`EventDispatcher`
-WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {})
+#: Base class used for Widget, that inherits from :class:`CyWidgetBase`
+WidgetBase = WidgetMetaclass('WidgetBase', (CyWidgetBase, ), {})
 
 
 class Widget(WidgetBase):
@@ -867,115 +867,6 @@ class Widget(WidgetBase):
         m = self._apply_transform(m)
         return m
 
-    x = NumericProperty(0)
-    '''X position of the widget.
-
-    :attr:`x` is a :class:`~kivy.properties.NumericProperty` and defaults to 0.
-    '''
-
-    y = NumericProperty(0)
-    '''Y position of the widget.
-
-    :attr:`y` is a :class:`~kivy.properties.NumericProperty` and defaults to 0.
-    '''
-
-    width = NumericProperty(100)
-    '''Width of the widget.
-
-    :attr:`width` is a :class:`~kivy.properties.NumericProperty` and defaults
-    to 100.
-
-    .. warning::
-        Keep in mind that the `width` property is subject to layout logic and
-        that this has not yet happened at the time of the widget's `__init__`
-        method.
-    '''
-
-    height = NumericProperty(100)
-    '''Height of the widget.
-
-    :attr:`height` is a :class:`~kivy.properties.NumericProperty` and defaults
-    to 100.
-
-    .. warning::
-        Keep in mind that the `height` property is subject to layout logic and
-        that this has not yet happened at the time of the widget's `__init__`
-        method.
-    '''
-
-    pos = ReferenceListProperty(x, y)
-    '''Position of the widget.
-
-    :attr:`pos` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`x`, :attr:`y`) properties.
-    '''
-
-    size = ReferenceListProperty(width, height)
-    '''Size of the widget.
-
-    :attr:`size` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`width`, :attr:`height`) properties.
-    '''
-
-    def get_right(self):
-        return self.x + self.width
-
-    def set_right(self, value):
-        self.x = value - self.width
-
-    right = AliasProperty(get_right, set_right, bind=('x', 'width'))
-    '''Right position of the widget.
-
-    :attr:`right` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`x` + :attr:`width`).
-    '''
-
-    def get_top(self):
-        return self.y + self.height
-
-    def set_top(self, value):
-        self.y = value - self.height
-
-    top = AliasProperty(get_top, set_top, bind=('y', 'height'))
-    '''Top position of the widget.
-
-    :attr:`top` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`y` + :attr:`height`).
-    '''
-
-    def get_center_x(self):
-        return self.x + self.width / 2.
-
-    def set_center_x(self, value):
-        self.x = value - self.width / 2.
-
-    center_x = AliasProperty(get_center_x, set_center_x, bind=('x', 'width'))
-    '''X center position of the widget.
-
-    :attr:`center_x` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`x` + :attr:`width` / 2.).
-    '''
-
-    def get_center_y(self):
-        return self.y + self.height / 2.
-
-    def set_center_y(self, value):
-        self.y = value - self.height / 2.
-
-    center_y = AliasProperty(get_center_y, set_center_y, bind=('y', 'height'))
-    '''Y center position of the widget.
-
-    :attr:`center_y` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`y` + :attr:`height` / 2.).
-    '''
-
-    center = ReferenceListProperty(center_x, center_y)
-    '''Center position of the widget.
-
-    :attr:`center` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`center_x`, :attr:`center_y`) properties.
-    '''
-
     cls = ListProperty([])
     '''Class of the widget, used for styling.
     '''
@@ -1011,51 +902,6 @@ class Widget(WidgetBase):
 
     The parent of a widget is set when the widget is added to another widget
     and unset when the widget is removed from its parent.
-    '''
-
-    size_hint_x = NumericProperty(1, allownone=True)
-    '''X size hint. Represents how much space the widget should use in the
-    direction of the X axis relative to its parent's width.
-    Only the :class:`~kivy.uix.layout.Layout` and
-    :class:`~kivy.core.window.Window` classes make use of the hint.
-
-    The size_hint is used by layouts for two purposes:
-
-    - When the layout considers widgets on their own rather than in
-      relation to its other children, the size_hint_x is a direct proportion
-      of the parent width, normally between 0.0 and 1.0. For instance, a
-      widget with ``size_hint_x=0.5`` in
-      a vertical BoxLayout will take up half the BoxLayout's width, or
-      a widget in a FloatLayout with ``size_hint_x=0.2`` will take up 20%
-      of the FloatLayout width. If the size_hint is greater than 1, the
-      widget will be wider than the parent.
-    - When multiple widgets can share a row of a layout, such as in a
-      horizontal BoxLayout, their widths will be their size_hint_x as a
-      fraction of the sum of widget size_hints. For instance, if the
-      size_hint_xs are (0.5, 1.0, 0.5), the first widget will have a
-      width of 25% of the parent width.
-
-    :attr:`size_hint_x` is a :class:`~kivy.properties.NumericProperty` and
-    defaults to 1.
-    '''
-
-    size_hint_y = NumericProperty(1, allownone=True)
-    '''Y size hint.
-
-    :attr:`size_hint_y` is a :class:`~kivy.properties.NumericProperty` and
-    defaults to 1.
-
-    See :attr:`size_hint_x` for more information, but with widths and heights
-    swapped.
-    '''
-
-    size_hint = ReferenceListProperty(size_hint_x, size_hint_y)
-    '''Size hint.
-
-    :attr:`size_hint` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`size_hint_x`, :attr:`size_hint_y`) properties.
-
-    See :attr:`size_hint_x` for more information.
     '''
 
     pos_hint = ObjectProperty({})

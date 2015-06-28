@@ -203,7 +203,7 @@ __all__ = ('Property',
 include "graphics/config.pxi"
 
 
-from weakref import ref
+from weakref import proxy, ref
 from kivy.compat import string_types
 from kivy.config import ConfigParser
 from functools import partial
@@ -305,7 +305,6 @@ cdef class Property:
         self.errorhandler = None
         self.errorvalue_set = 0
 
-
     def __init__(self, defaultvalue, **kw):
         self.defaultvalue = defaultvalue
         self.allownone = <int>kw.get('allownone', 0)
@@ -333,6 +332,12 @@ cdef class Property:
         storage.value = self.convert(obj, self.defaultvalue)
         storage.observers = EventObservers()
 
+    cdef PropertyStorage get_storage(self, EventDispatcher obj):
+        return obj.__storage[self._name]
+
+    cdef void set_storage(self, EventDispatcher obj, PropertyStorage storage):
+        obj.__storage[self._name] = storage
+
     cpdef link(self, EventDispatcher obj, str name):
         '''Link the instance with its real name.
 
@@ -352,14 +357,19 @@ cdef class Property:
         used in `Widget.__new__`. The link function is also used to create the
         storage space of the property for this specific widget instance.
         '''
-        cdef PropertyStorage d
+        cdef PropertyStorage ps
         if self._name != '' and name != self._name:
-            d = obj.__storage.get(self._name, PropertyStorage())
+            try:  # this branch here should rarely occur
+                ps = self.get_storage(obj)
+                if ps is None:
+                    ps = PropertyStorage()
+            except:
+                ps = PropertyStorage()
         else:
-            d = PropertyStorage()
+            ps = PropertyStorage()
         self._name = name
-        obj.__storage[name] = d
-        self.init_storage(obj, d)
+        self.set_storage(obj, ps)
+        self.init_storage(obj, ps)
 
     cpdef link_deps(self, EventDispatcher obj, str name):
         pass
@@ -367,8 +377,7 @@ cdef class Property:
     cpdef bind(self, EventDispatcher obj, observer):
         '''Add a new observer to be called only when the value is changed.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.bind(WeakMethod(observer), 1)
+        self.get_storage(obj).observers.bind(WeakMethod(observer), 1)
 
     cpdef fast_bind(self, EventDispatcher obj, observer, tuple largs=(), dict kwargs={}):
         '''Similar to bind, except it doesn't check if the observer already
@@ -376,29 +385,25 @@ cdef class Property:
         fast_unbind or unbind_uid should be called when unbinding.
         It returns a unique positive uid to be used with unbind_uid.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        return ps.observers.fast_bind(observer, largs, kwargs, 0)
+        return self.get_storage(obj).observers.fast_bind(observer, largs, kwargs, 0)
 
     cpdef unbind(self, EventDispatcher obj, observer):
         '''Remove the observer from our widget observer list.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.unbind(observer, 1, 0)
+        self.get_storage(obj).observers.unbind(observer, 1, 0)
 
     cpdef fast_unbind(self, EventDispatcher obj, observer, tuple largs=(), dict kwargs={}):
         '''Remove the observer from our widget observer list bound with
         fast_bind. It removes the first match it finds, as opposed to unbind
         which searches for all matches.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.fast_unbind(observer, largs, kwargs)
+        self.get_storage(obj).observers.fast_unbind(observer, largs, kwargs)
 
     cpdef unbind_uid(self, EventDispatcher obj, object uid):
         '''Remove the observer from our widget observer list bound with
         fast_bind using the uid.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.observers.unbind_uid(uid)
+        self.get_storage(obj).observers.unbind_uid(uid)
 
     def __set__(self, EventDispatcher obj, val):
         self.set(obj, val)
@@ -420,7 +425,7 @@ cdef class Property:
     cpdef set(self, EventDispatcher obj, value):
         '''Set a new value for the property.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        cdef PropertyStorage ps = self.get_storage(obj)
         value = self.convert(obj, value)
         realvalue = ps.value
         if not self.force_dispatch and self.compare_value(realvalue, value):
@@ -447,7 +452,7 @@ cdef class Property:
         '''
         cdef PropertyStorage ps
         try:
-            ps = obj.__storage[self._name]
+            ps = self.get_storage(obj)
         except KeyError:
             raise AttributeError(self._name)
         return ps.value
@@ -493,7 +498,7 @@ cdef class Property:
             prop.dispatch(button)
 
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        cdef PropertyStorage ps = self.get_storage(obj)
         ps.observers.dispatch(obj, ps.value, None, None, 0)
 
 
@@ -563,8 +568,7 @@ cdef class NumericProperty(Property):
         return self.parse_list(obj, value[:-2], value[-2:])
 
     cdef float parse_list(self, EventDispatcher obj, value, ext):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.numeric_fmt = ext
+        self.get_storage(obj).numeric_fmt = ext
         return dpi2px(value, ext)
 
     def get_format(self, EventDispatcher obj):
@@ -573,8 +577,7 @@ cdef class NumericProperty(Property):
         the value have not been changed at all). Otherwise, it can be one of
         'in', 'pt', 'cm', 'mm'.
         '''
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        return ps.numeric_fmt
+        return self.get_storage(obj).numeric_fmt
 
 
 cdef class StringProperty(Property):
@@ -602,17 +605,23 @@ cdef class StringProperty(Property):
 
 cdef inline void observable_list_dispatch(object self):
     cdef Property prop = self.prop
-    obj = self.obj()
+    cdef EventDispatcher ev
+    obj = self.obj
     if obj is not None:
-        prop.dispatch(obj)
+        try:
+            ev = obj.__self__
+        except ReferenceError:
+            self.obj = None
+            return
+        prop.dispatch(ev)
 
 
 class ObservableList(list):
     # Internal class to observe changes inside a native python list.
-    def __init__(self, *largs):
-        self.prop = largs[0]
-        self.obj = ref(largs[1])
-        super(ObservableList, self).__init__(*largs[2:])
+    def __init__(self, prop, obj, *largs):
+        self.prop = prop
+        self.obj = proxy(obj)
+        super(ObservableList, self).__init__(*largs)
 
     def __setitem__(self, key, value):
         list.__setitem__(self, key, value)
@@ -1142,16 +1151,45 @@ cdef class OptionProperty(Property):
         def __get__(self):
             return self.options
 
-class ObservableReferenceList(ObservableList):
+class ObservableReferenceList(list):
+    # Internal class to observe changes inside a native python list.
+    def __init__(self, prop, obj, *largs):
+        self.prop = prop
+        self.obj = proxy(obj)
+        super(ObservableReferenceList, self).__init__(*largs)
+
     def __setitem__(self, key, value, update_properties=True):
+        cdef EventDispatcher ev = None
+        cdef ReferenceListProperty prop
         list.__setitem__(self, key, value)
+
         if update_properties:
-            self.prop.setitem(self.obj(), key, value)
+            obj = self.obj
+            if obj is not None:
+                try:
+                    ev = obj.__self__
+                except ReferenceError:
+                    self.obj = None
+                    return
+                prop = self.prop
+                prop.setitem(ev, key, value)
 
     def __setslice__(self, start, stop, value, update_properties=True):  # Python 2 only method
-        list.__setslice__(self, start, stop, value)
+        cdef EventDispatcher ev = None
+        cdef ReferenceListProperty prop
+        s = slice(start, stop)
+        list.__setitem__(self, s, value)
+
         if update_properties:
-            self.prop.setitem(self.obj(), slice(start, stop), value)
+            obj = self.obj
+            if obj is not None:
+                try:
+                    ev = obj.__self__
+                except ReferenceError:
+                    self.obj = None
+                    return
+                prop = self.prop
+                prop.setitem(ev, s, value)
 
 cdef class ReferenceListProperty(Property):
     '''Property that allows the creation of a tuple of other properties.
@@ -1171,52 +1209,35 @@ cdef class ReferenceListProperty(Property):
 
     '''
     def __cinit__(self):
-        self.properties = list()
+        self.properties = []
 
     def __init__(self, *largs, **kw):
-        for prop in largs:
-            self.properties.append(prop)
-        Property.__init__(self, largs, **kw)
+        self.properties.extend(largs)
+        Property.__init__(self, None, **kw)
 
     cdef init_storage(self, EventDispatcher obj, PropertyStorage storage):
         Property.init_storage(self, obj, storage)
-        storage.properties = tuple(self.properties)
-        storage.stop_event = 0
-
-    cpdef link(self, EventDispatcher obj, str name):
-        Property.link(self, obj, name)
         cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableReferenceList(self, obj, ps.value)
+        storage.properties = self.properties
+        storage.stop_event = -1
 
     cpdef link_deps(self, EventDispatcher obj, str name):
         cdef Property prop
-        Property.link_deps(self, obj, name)
-        for prop in self.properties:
-            prop.fast_bind(obj, self.trigger_change)
-
-    cpdef trigger_change(self, EventDispatcher obj, value):
         cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.stop_event:
+        cdef int i
+        Property.link_deps(self, obj, name)
+        ps.value = ObservableReferenceList(
+            self, obj, [prop.get(obj) for prop in self.properties])
+        for i, prop in enumerate(self.properties):
+            prop.fast_bind(obj, self.trigger_change, (ps, i))
+
+    cpdef trigger_change(self, PropertyStorage ps, int i, EventDispatcher obj, value):
+        # only dispatch if we were not the one that triggered through set
+        if ps.stop_event == i:
+            ps.stop_event = -1
             return
-        p = ps.properties
-
-        try:
-            ps.value.__setslice__(0, len(p),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
-        except AttributeError:
-            ps.value.__setitem__(slice(len(p)),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
-
+        ps.value.__setitem__(i, value, update_properties=False)
         self.dispatch(obj)
-
-    cdef convert(self, EventDispatcher obj, value):
-        if not isinstance(value, (list, tuple)):
-            raise ValueError('%s.%s must be a list or a tuple' % (
-                obj.__class__.__name__,
-                self.name))
-        return list(value)
 
     cdef check(self, EventDispatcher obj, value):
         cdef PropertyStorage ps = obj.__storage[self._name]
@@ -1227,59 +1248,47 @@ cdef class ReferenceListProperty(Property):
 
     cpdef set(self, EventDispatcher obj, _value):
         cdef int idx
-        cdef list value
+        cdef Property prop
         cdef PropertyStorage ps = obj.__storage[self._name]
-        value = self.convert(obj, _value)
+        cdef list value = list(_value)
         if not self.force_dispatch and self.compare_value(ps.value, value):
             return False
         self.check(obj, value)
         # prevent dependency loop
-        ps.stop_event = 1
-        props = ps.properties
-        for idx in xrange(len(props)):
-            prop = props[idx]
-            x = value[idx]
-            prop.set(obj, x)
-        ps.stop_event = 0
-        try:
-            ps.value.__setslice__(0, len(value), value,
-                    update_properties=False)
-        except AttributeError:
-            ps.value.__setitem__(slice(len(value)), value,
-                    update_properties=False)
+        for idx, (prop, val) in enumerate(zip(ps.properties, value)):
+            ps.stop_event = idx
+            prop.set(obj, val)
+        ps.stop_event = -1
+        ps.value.__setitem__(
+            slice(len(ps.properties)),
+            [prop.get(obj) for prop in ps.properties], update_properties=False)
         self.dispatch(obj)
         return True
 
-    cpdef setitem(self, EventDispatcher obj, key, value):
+    cdef setitem(self, EventDispatcher obj, key, value):
         cdef PropertyStorage ps = obj.__storage[self._name]
-        cdef bint res = False
+        cdef int idx, sstart, res = 0
+        cdef Property prop
 
-        ps.stop_event = 1
         if isinstance(key, slice):
-            props = ps.properties[key]
-            for index in xrange(len(props)):
-                prop = props[index]
-                x = value[index]
-                res = prop.set(obj, x) or res
+            sstart = key.start
+            for idx, (prop, val) in enumerate(zip(ps.properties[key], value)):
+                ps.stop_event = sstart + idx
+                res = prop.set(obj, val) or res
+            ps.stop_event = -1
+            if res:
+                ps.value.__setitem__(
+                    key, [prop.get(obj) for prop in ps.properties[key]],
+                    update_properties=False)
+                self.dispatch(obj)
         else:
+            ps.stop_event = key
             prop = ps.properties[key]
             res = prop.set(obj, value)
-        ps.stop_event = 0
-        if res:
-            self.dispatch(obj)
-
-    cpdef get(self, EventDispatcher obj):
-        cdef PropertyStorage ps = obj.__storage[self._name]
-        cdef tuple p = ps.properties
-        try:
-            ps.value.__setslice__(0, len(p),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
-        except AttributeError:
-            ps.value.__setitem__(slice(len(p)),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
-        return ps.value
+            ps.stop_event = -1
+            if res:
+                ps.value.__setitem__(key, prop.get(obj), update_properties=False)
+                self.dispatch(obj)
 
 cdef class AliasProperty(Property):
     '''Create a property with a custom getter and setter.
@@ -1348,7 +1357,7 @@ cdef class AliasProperty(Property):
             oprop.fast_bind(obj, self.trigger_change)
 
     cpdef trigger_change(self, EventDispatcher obj, value):
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        cdef PropertyStorage ps = self.get_storage(obj)
         ps.alias_initial = 1
         dvalue = self.get(obj)
         if ps.value != dvalue:
@@ -1359,7 +1368,7 @@ cdef class AliasProperty(Property):
         return True
 
     cpdef get(self, EventDispatcher obj):
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        cdef PropertyStorage ps = self.get_storage(obj)
         if self.use_cache:
             if ps.alias_initial:
                 ps.value = ps.getter(obj)
@@ -1368,7 +1377,7 @@ cdef class AliasProperty(Property):
         return ps.getter(obj)
 
     cpdef set(self, EventDispatcher obj, value):
-        cdef PropertyStorage ps = obj.__storage[self._name]
+        cdef PropertyStorage ps = self.get_storage(obj)
         if ps.setter(obj, value):
             ps.value = self.get(obj)
             self.dispatch(obj)

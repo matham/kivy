@@ -168,6 +168,13 @@ cdef class EventDispatcher(ObjectWithUid):
     '''
 
     def __cinit__(self, *largs, **kwargs):
+        self.is_initialized = 0
+        self._init()
+
+    cdef void init(self):
+        pass
+
+    def _init(self):
         global cache_properties
         cdef dict cp = cache_properties
         cdef dict attrs_found
@@ -444,7 +451,7 @@ cdef class EventDispatcher(ObjectWithUid):
         times, only the first occurrence will be unbound.
 
         .. note::
-            
+
             This method may fail to unbind a callback bound with
             :meth:`fast_bind; you should use :meth:`fast_unbind` instead.
         '''

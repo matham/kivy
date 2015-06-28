@@ -14,7 +14,9 @@ cdef class EventDispatcher(ObjectWithUid):
     cdef dict __properties
     cdef dict __storage
     cdef object __weakref__
+    cdef int is_initialized
     cpdef dict properties(self)
+    cdef void init(self)
 
 
 cdef enum BoundLock:
