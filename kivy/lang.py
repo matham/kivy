@@ -872,12 +872,6 @@ lang_keyvalue = re.compile('([a-zA-Z_][a-zA-Z0-9_.]*\.[a-zA-Z0-9_.]+)')
 lang_tr = re.compile('(_\()')
 lang_cls_split_pat = re.compile(', *')
 
-# class types to check with isinstance
-if PY2:
-    _cls_type = (type, types.ClassType)
-else:
-    _cls_type = (type, )
-
 # all the widget handlers, used to correctly unbind all the callbacks then the
 # widget is deleted
 _handlers = defaultdict(partial(defaultdict, list))
@@ -1614,28 +1608,14 @@ def update_intermediates(base, keys, bound, s, fn, args, instance, value):
     for val in keys[s:-1]:
         # if we need to dynamically rebind, bindm otherwise just
         # add the attr to the list
-<<<<<<< HEAD
-        if isinstance(f, (EventDispatcher, Observable)):
-            prop = f.property(val, True)
-            if prop is not None and getattr(prop, 'rebind', False):
-                # fbind should not dispatch, otherwise
-                # update_intermediates might be called in the middle
-                # here messing things up
-                uid = f.fbind(
-                    val, update_intermediates, base, keys, bound, s, fn, args)
-                append([f.proxy_ref, val, update_intermediates, uid])
-            else:
-                append([f.proxy_ref, val, None, None])
-=======
         if (isinstance(f, (EventDispatcher, Observable)) and
             f.rebind_property(val)):
-            # fast_bind should not dispatch, otherwise
+            # fbind should not dispatch, otherwise
             # update_intermediates might be called in the middle
             # here messing things up
-            uid = f.fast_bind(
+            uid = f.fbind(
                 val, update_intermediates, base, keys, bound, s, fn, args)
             append([f.proxy_ref, val, uid])
->>>>>>> lang-compiler
         else:
             append([None, None, None])
 
@@ -1688,34 +1668,16 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
             for val in keys[1:-1]:
                 # if we need to dynamically rebind, bind otherwise
                 # just add the attr to the list
-<<<<<<< HEAD
-                if isinstance(f, (EventDispatcher, Observable)):
-                    prop = f.property(val, True)
-                    if prop is not None and getattr(prop, 'rebind', False):
-                        # fbind should not dispatch, otherwise
-                        # update_intermediates might be called in the middle
-                        # here messing things up
-                        uid = f.fbind(
-                            val, update_intermediates, base, keys, bound, k,
-                            fn, args)
-                        append([f.proxy_ref, val, update_intermediates, uid])
-                        was_bound = True
-                    else:
-                        append([f.proxy_ref, val, None, None])
-                elif not isinstance(f, _cls_type):
-                    append([getattr(f, 'proxy_ref', f), val, None, None])
-=======
                 if (isinstance(f, (EventDispatcher, Observable)) and
                     f.rebind_property(val)):
-                    # fast_bind should not dispatch, otherwise
+                    # fbind should not dispatch, otherwise
                     # update_intermediates might be called in the middle
                     # here messing things up
-                    uid = f.fast_bind(
+                    uid = f.fbind(
                         val, update_intermediates, base, keys, bound, k,
                         fn, args)
                     append([f.proxy_ref, val, uid])
                     was_bound = True
->>>>>>> lang-compiler
                 else:
                     append([None, None, None])
                 f = getattr(f, val, None)
@@ -2462,72 +2424,19 @@ class BuilderBase(object):
         '''
         if uid not in _handlers:
             return
-<<<<<<< HEAD
-        for prop_callbacks in _handlers[uid].values():
-            for callbacks in prop_callbacks:
-                for f, k, fn, bound_uid in callbacks:
-                    if fn is None:  # it's not a kivy prop.
-                        continue
-                    try:
-                        f.unbind_uid(k, bound_uid)
-                    except ReferenceError:
-                        # proxy widget is already gone, that's cool :)
-                        pass
-        del _handlers[uid]
 
-    def unbind_property(self, widget, name):
-        '''Unbind the handlers created by all the rules of the widget that set
-        the name.
+#         for prop_callbacks in _handlers[uid].values():
+#             for callbacks in prop_callbacks:
+#                 for f, k, fn, bound_uid in callbacks:
+#                     if fn is None:  # it's not a kivy prop.
+#                         continue
+#                     try:
+#                         f.unbind_uid(k, bound_uid)
+#                     except ReferenceError:
+#                         # proxy widget is already gone, that's cool :)
+#                         pass
+#         del _handlers[uid]
 
-        This effectively clears all the rules of widget that take the form::
-
-            name: rule
-
-        For examples::
-
-            >>> w = Builder.load_string(\'''
-            ... Widget:
-            ...     height: self.width / 2. if self.disabled else self.width
-            ...     x: self.y + 50
-            ... \''')
-            >>> w.size
-            [100, 100]
-            >>> w.pos
-            [50, 0]
-            >>> w.width = 500
-            >>> w.size
-            [500, 500]
-            >>> Builder.unbind_property(w, 'height')
-            >>> w.width = 222
-            >>> w.size
-            [222, 500]
-            >>> w.y = 500
-            >>> w.pos
-            [550, 500]
-
-        .. versionadded:: 1.9.1
-        '''
-        uid = widget.uid
-        if uid not in _handlers:
-            return
-
-        prop_handlers = _handlers[uid]
-        if name not in prop_handlers:
-            return
-
-        for callbacks in prop_handlers[name]:
-            for f, k, fn, bound_uid in callbacks:
-                if fn is None:  # it's not a kivy prop.
-                    continue
-                try:
-                    f.unbind_uid(k, bound_uid)
-                except ReferenceError:
-                    # proxy widget is already gone, that's cool :)
-                    pass
-        del prop_handlers[name]
-        if not prop_handlers:
-            del _handlers[uid]
-=======
         return
 
         for callbacks in _handlers[uid]:
@@ -2581,7 +2490,60 @@ class BuilderBase(object):
                     l[pidx_old] = None
 
         del _handlers[uid]
->>>>>>> lang-compiler
+
+    def unbind_property(self, widget, name):
+        '''Unbind the handlers created by all the rules of the widget that set
+        the name.
+
+        This effectively clears all the rules of widget that take the form::
+
+            name: rule
+
+        For examples::
+
+            >>> w = Builder.load_string(\'''
+            ... Widget:
+            ...     height: self.width / 2. if self.disabled else self.width
+            ...     x: self.y + 50
+            ... \''')
+            >>> w.size
+            [100, 100]
+            >>> w.pos
+            [50, 0]
+            >>> w.width = 500
+            >>> w.size
+            [500, 500]
+            >>> Builder.unbind_property(w, 'height')
+            >>> w.width = 222
+            >>> w.size
+            [222, 500]
+            >>> w.y = 500
+            >>> w.pos
+            [550, 500]
+
+        .. versionadded:: 1.9.1
+        '''
+        uid = widget.uid
+        if uid not in _handlers:
+            return
+        return
+
+        prop_handlers = _handlers[uid]
+        if name not in prop_handlers:
+            return
+
+        for callbacks in prop_handlers[name]:
+            for f, k, fn, bound_uid in callbacks:
+                if fn is None:  # it's not a kivy prop.
+                    continue
+                try:
+                    f.unbind_uid(k, bound_uid)
+                except ReferenceError:
+                    # proxy widget is already gone, that's cool :)
+                    pass
+        del prop_handlers[name]
+        if not prop_handlers:
+            del _handlers[uid]
 
     def _build_canvas(self, canvas, widget, rule, rootrule):
         global Instruction

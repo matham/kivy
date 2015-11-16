@@ -474,15 +474,10 @@ cdef class EventDispatcher(ObjectWithUid):
 
         .. note::
 
-<<<<<<< HEAD
             It is safe to use :meth:`unbind` on a function bound with :meth:`fbind`
             as long as that function was originally bound without any keyword and
             positional arguments. Otherwise, the function will fail to be unbound
             and you should use :meth:`funbind` instead.
-=======
-            This method may fail to unbind a callback bound with
-            :meth:`fast_bind; you should use :meth:`fast_unbind` instead.
->>>>>>> lang-compiler
         '''
         cdef EventObservers observers
         cdef PropertyStorage ps

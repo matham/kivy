@@ -298,17 +298,17 @@ class Widget(WidgetBase):
         if not hasattr(self, '_context'):
             self._context = get_current_context()
 
-<<<<<<< HEAD
+        builder_created = kwargs.pop('__builder_created', None)
         no_builder = '__no_builder' in kwargs
         if no_builder:
             del kwargs['__no_builder']
+
         on_args = {k: v for k, v in kwargs.items() if k[:3] == 'on_'}
         for key in on_args:
             del kwargs[key]
-=======
+
         parent = kwargs.pop('parent', None)
         self.proxy_callback = _widget_destructor
->>>>>>> lang-compiler
 
         super(Widget, self).__init__(**kwargs)
 
@@ -318,27 +318,15 @@ class Widget(WidgetBase):
 
         if parent is not None:
             parent.add_widget(self)
+
         # Apply all the styles.
-<<<<<<< HEAD
         if not no_builder:
-            #current_root = Builder.idmap.get('root')
-            #Builder.idmap['root'] = self
-            Builder.apply(self)
-            #if current_root is not None:
-            #    Builder.idmap['root'] = current_root
-            #else:
-            #    Builder.idmap.pop('root')
-=======
-        builder_created = kwargs.get('__builder_created')
-        if '__no_builder' not in kwargs:
             Builder.apply(self, builder_created)
             if builder_created is None:
                 self.dispatch('on_kv_apply', self)
->>>>>>> lang-compiler
 
         # Bind all the events.
-        if on_args:
-            self.bind(**on_args)
+        self.bind(**on_args)
 
     #
     # Collision
