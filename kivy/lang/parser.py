@@ -184,12 +184,12 @@ class ParserRuleProperty(object):
         self.co_value = compile(value, self.ctx.filename or '<string>', mode)
 
         # for exec mode, we don't need to watch any keys.
-        if mode == 'exec':
-            return
+        # if mode == 'exec':
+        #     return
 
         # now, detect obj.prop
         # first, remove all the string from the value
-        tmp = sub(lang_str, '', value)
+        tmp = sub(lang_str, '""', value)
         idx = tmp.find('#')
         if idx != -1:
             tmp = tmp[:idx]
@@ -444,8 +444,7 @@ class Parser(object):
                         Logger.debug('Lang: Reloading {0} ' +
                                      'because include was forced.'
                                      .format(ref))
-                        kivy.lang.builder.Builder.unload_file(ref)
-                        kivy.lang.builder.Builder.load_file(ref)
+                        kivy.lang.builder.Builder.load_file(ref, reload=True)
                         continue
                 Logger.debug('Lang: Including file: {0}'.format(0))
                 __KV_INCLUDES__.append(ref)
