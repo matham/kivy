@@ -1057,7 +1057,7 @@ if isdir(binary_deps_path):
 # setup !
 if not build_examples:
     install_requires = [
-        'Kivy-Garden>=0.1.4', 'docutils', 'pygments'
+        'Kivy-Garden>=0.1.4', 'docutils', 'pygments', 'astor'
     ]
     setup_requires = []
     if declare_cython:
