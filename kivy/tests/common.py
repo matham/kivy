@@ -18,6 +18,7 @@ import os
 import threading
 from kivy.graphics.cgl import cgl_get_backend_name
 from kivy.input.motionevent import MotionEvent
+from kivy.compat import PY2
 log = logging.getLogger('unittest')
 
 
@@ -68,6 +69,9 @@ def ensure_web_server():
     http_server_ready.wait()
     if http_server is None:
         raise Exception("Unable to start webserver")
+
+skip_py2_decorator = unittest.skip('Does not support py2') if PY2 else \
+    lambda x: x
 
 
 class GraphicUnitTest(_base):
