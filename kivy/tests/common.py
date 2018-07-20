@@ -19,6 +19,9 @@ import threading
 from kivy.graphics.cgl import cgl_get_backend_name
 from kivy.input.motionevent import MotionEvent
 from kivy.compat import PY2
+
+__all__ = ('GraphicUnitTest', 'UnitTestTouch', 'skip_py2_decorator')
+
 log = logging.getLogger('unittest')
 
 
