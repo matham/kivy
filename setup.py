@@ -1025,6 +1025,7 @@ if not build_examples:
             'kivy.input.postproc',
             'kivy.input.providers',
             'kivy.lang',
+            'kivy.lang.compiler',
             'kivy.lib',
             'kivy.lib.gstplayer',
             'kivy.lib.vidcore_lite',
