@@ -1,4 +1,5 @@
 Cython>=0.24
+astor
 # Frozen Sphinx requirements for easier pip installation
 sphinxcontrib-actdiag
 sphinxcontrib-blockdiag
