@@ -66,7 +66,7 @@ build_script:
     Check-Error
 
 
-    $PYTHONPATH = "$env:APPVEYOR_BUILD_FOLDER;$PYTHONPATH"
+    $env:PYTHONPATH = "$env:APPVEYOR_BUILD_FOLDER;$PYTHONPATH"
 
     echo "Build folder: $env:APPVEYOR_BUILD_FOLDER. Wheel folder: $env:WHEEL_DIR."
 
