@@ -327,6 +327,7 @@ class Widget(WidgetBase):
         if not hasattr(self, '_context'):
             self._context = get_current_context()
 
+        parent = kwargs.pop('parent', None)
         no_builder = '__no_builder' in kwargs
         self._disabled_value = False
         if no_builder:
@@ -342,6 +343,9 @@ class Widget(WidgetBase):
         # Create the default canvas if it does not exist.
         if self.canvas is None:
             self.canvas = Canvas(opacity=self.opacity)
+
+        if parent is not None:
+            parent.add_widget(self)
 
         # Apply all the styles.
         if not no_builder:
@@ -378,6 +382,12 @@ class Widget(WidgetBase):
     @property
     def __self__(self):
         return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     #
     # Collision
