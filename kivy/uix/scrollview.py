@@ -767,7 +767,11 @@ class ScrollView(StencilView):
         if touch.ud.get(self._get_uid()) is None:
             # don't pass on touch to children if outside the sv
             if self.collide_point(*touch.pos):
-                return super(ScrollView, self).on_touch_move(touch)
+                touch.push()
+                touch.apply_transform_2d(self.to_local)
+                res = super(ScrollView, self).on_touch_move(touch)
+                touch.pop()
+                return res
             return False
 
         touch.ud['sv.handled'] = {'x': False, 'y': False}
