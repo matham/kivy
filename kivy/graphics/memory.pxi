@@ -32,7 +32,7 @@ cdef inline _ensure_float_view(data, float **f):
             f[0] = &memview[0]
             return data, None
         except Exception as e:
-            import traceback; traceback.print_exc() 
+            import traceback; traceback.print_exc()
             src = list(data)
             arr = clone(array('f'), len(src), False)
             f[0] = arr.data.as_floats
@@ -68,6 +68,32 @@ cdef inline _ensure_ushort_view(data, unsigned short **f):
         src = list(data)
         arr = clone(array('H'), len(src), False)
         f[0] = arr.data.as_ushorts
+        for i in range(len(src)):
+            f[0][i] = src[i]
+    return src, arr
+
+
+cdef inline _ensure_int_view(data, int **f):
+    cdef array arr
+    cdef list src
+    cdef int i
+    cdef int [::1] memview
+    # do if/else instead of straight try/except because its faster for list
+    if not isinstance(data, (tuple, list)):
+        try:
+            memview = data
+            f[0] = &memview[0]
+            return data, None
+        except:
+            src = list(data)
+            arr = clone(array('l'), len(src), False)
+            f[0] = arr.data.as_ints
+            for i in range(len(src)):
+                f[0][i] = src[i]
+    else:
+        src = list(data)
+        arr = clone(array('l'), len(src), False)
+        f[0] = arr.data.as_ints
         for i in range(len(src)):
             f[0][i] = src[i]
     return src, arr

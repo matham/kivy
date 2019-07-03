@@ -16,6 +16,7 @@ This module is a Python wrapper for OpenGL commands.
 
 include "../include/config.pxi"
 include "common.pxi"
+include "memory.pxi"
 
 cimport kivy.graphics.cgl as cgldef
 from kivy.graphics.cgl cimport (cgl, GLvoid, GLfloat, GLuint, GLint, GLchar,
@@ -498,7 +499,10 @@ def glBufferData(GLenum target, GLsizeiptr size, bytes data, GLenum usage):
     '''See: `glBufferData() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glBufferData.xml>`_
     '''
-    cgl.glBufferData(target, size, <char *>data, usage)
+    if not data:
+        cgl.glBufferData(target, size, NULL, usage)
+    else:
+        cgl.glBufferData(target, size, <char *>data, usage)
 
 def glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, bytes data):
     '''See: `glBufferSubData() on Kronos website
@@ -687,7 +691,9 @@ def glDrawElements(GLenum mode, GLsizei count, GLenum type, indices):
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glDrawElements.xml>`_
     '''
     cdef void *ptr = NULL
-    if isinstance(indices, bytes):
+    if not indices:
+        pass
+    elif isinstance(indices, bytes):
         ptr = <void *>(<char *>(<bytes>indices))
     elif isinstance(indices, (long, int)):
         ptr = <void *>(<unsigned int>indices)
@@ -1271,8 +1277,12 @@ def glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei
     '''See: `glTexImage2D() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml>`_
     '''
-    cgl.glTexImage2D(target, level, internalformat, width, height, border,
-                          format, type, <GLvoid *><char *>pixels)
+    if not pixels:
+        cgl.glTexImage2D(target, level, internalformat, width, height, border,
+                         format, type, NULL)
+    else:
+        cgl.glTexImage2D(target, level, internalformat, width, height, border,
+                         format, type, <GLvoid *><char *>pixels)
 
 def glTexParameterf(GLenum target, GLenum pname, GLfloat param):
     '''See: `glTexParameterf() on Kronos website
@@ -1319,14 +1329,13 @@ def glUniform1f(GLint location, GLfloat x):
     '''
     cgl.glUniform1f(location, x)
 
-def glUniform1fv(GLint location, GLsizei count):#,  GLfloat* v):
+def glUniform1fv(GLint location, GLsizei count, values):
     '''See: `glUniform1fv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform1fv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform1fv(location, count, v)
-    raise NotImplemented()
+    cdef float *pvalues = NULL
+    src, arr = _ensure_float_view(values, &pvalues)
+    cgl.glUniform1fv(location, count, pvalues)
 
 def glUniform1i(GLint location, GLint x):
     '''See: `glUniform1i() on Kronos website
@@ -1334,14 +1343,13 @@ def glUniform1i(GLint location, GLint x):
     '''
     cgl.glUniform1i(location, x)
 
-def glUniform1iv(GLint location, GLsizei count):#,  GLint* v):
+def glUniform1iv(GLint location, GLsizei count, values):
     '''See: `glUniform1iv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform1iv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform1iv(location, count, v)
-    raise NotImplemented()
+    cdef int *pvalues = NULL
+    src, arr = _ensure_int_view(values, &pvalues)
+    cgl.glUniform1iv(location, count, pvalues)
 
 def glUniform2f(GLint location, GLfloat x, GLfloat y):
     '''See: `glUniform2f() on Kronos website
@@ -1349,14 +1357,13 @@ def glUniform2f(GLint location, GLfloat x, GLfloat y):
     '''
     cgl.glUniform2f(location, x, y)
 
-def glUniform2fv(GLint location, GLsizei count):#,  GLfloat* v):
+def glUniform2fv(GLint location, GLsizei count, values):
     '''See: `glUniform2fv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform2fv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform2fv(location, count, v)
-    raise NotImplemented()
+    cdef float *pvalues = NULL
+    src, arr = _ensure_float_view(values, &pvalues)
+    cgl.glUniform2fv(location, count, pvalues)
 
 def glUniform2i(GLint location, GLint x, GLint y):
     '''See: `glUniform2i() on Kronos website
@@ -1364,14 +1371,13 @@ def glUniform2i(GLint location, GLint x, GLint y):
     '''
     cgl.glUniform2i(location, x, y)
 
-def glUniform2iv(GLint location, GLsizei count):#,  GLint* v):
+def glUniform2iv(GLint location, GLsizei count, values):
     '''See: `glUniform2iv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform2iv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform2iv(location, count, v)
-    raise NotImplemented()
+    cdef int *pvalues = NULL
+    src, arr = _ensure_int_view(values, &pvalues)
+    cgl.glUniform2iv(location, count, pvalues)
 
 def glUniform3f(GLint location, GLfloat x, GLfloat y, GLfloat z):
     '''See: `glUniform3f() on Kronos website
@@ -1379,14 +1385,13 @@ def glUniform3f(GLint location, GLfloat x, GLfloat y, GLfloat z):
     '''
     cgl.glUniform3f(location, x, y, z)
 
-def glUniform3fv(GLint location, GLsizei count):#,  GLfloat* v):
+def glUniform3fv(GLint location, GLsizei count, values):
     '''See: `glUniform3fv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform3fv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform3fv(location, count, v)
-    raise NotImplemented()
+    cdef float *pvalues = NULL
+    src, arr = _ensure_float_view(values, &pvalues)
+    cgl.glUniform3fv(location, count, pvalues)
 
 def glUniform3i(GLint location, GLint x, GLint y, GLint z):
     '''See: `glUniform3i() on Kronos website
@@ -1394,14 +1399,13 @@ def glUniform3i(GLint location, GLint x, GLint y, GLint z):
     '''
     cgl.glUniform3i(location, x, y, z)
 
-def glUniform3iv(GLint location, GLsizei count):#,  GLint* v):
+def glUniform3iv(GLint location, GLsizei count, values):
     '''See: `glUniform3iv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform3iv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform3iv(location, count, v)
-    raise NotImplemented()
+    cdef int *pvalues = NULL
+    src, arr = _ensure_int_view(values, &pvalues)
+    cgl.glUniform3iv(location, count, pvalues)
 
 def glUniform4f(GLint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w):
     '''See: `glUniform4f() on Kronos website
@@ -1411,14 +1415,13 @@ def glUniform4f(GLint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w):
     '''
     cgl.glUniform4f(location, x, y, z, w)
 
-def glUniform4fv(GLint location, GLsizei count):#,  GLfloat* v):
+def glUniform4fv(GLint location, GLsizei count, values):
     '''See: `glUniform4fv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform4fv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform4fv(location, count, v)
-    raise NotImplemented()
+    cdef float *pvalues = NULL
+    src, arr = _ensure_float_view(values, &pvalues)
+    cgl.glUniform4fv(location, count, pvalues)
 
 def glUniform4i(GLint location, GLint x, GLint y, GLint z, GLint w):
     '''See: `glUniform4i() on Kronos website
@@ -1426,14 +1429,13 @@ def glUniform4i(GLint location, GLint x, GLint y, GLint z, GLint w):
     '''
     cgl.glUniform4i(location, x, y, z, w)
 
-def glUniform4iv(GLint location, GLsizei count):#,  GLint* v):
+def glUniform4iv(GLint location, GLsizei count, values):
     '''See: `glUniform4iv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform4iv.xml>`_
-
-    .. warning:: Not implemented yet.
     '''
-    #cgl.glUniform4iv(location, count, v)
-    raise NotImplemented()
+    cdef int *pvalues = NULL
+    src, arr = _ensure_int_view(values, &pvalues)
+    cgl.glUniform4iv(location, count, pvalues)
 
 def glUniformMatrix2fv(GLint location, GLsizei count):#, GLboolean transpose, bytes values):
     '''See: `glUniformMatrix2fv() on Kronos website

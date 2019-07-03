@@ -757,7 +757,7 @@ graphics_dependencies = {
         'config.pxi', 'opcodes.pxi', 'cgl.pxd',
         'context.pxd', 'common.pxi', 'vertex.pxd', 'transformation.pxd'],
     'opengl.pyx': [
-        'config.pxi', 'common.pxi', 'cgl.pxd', 'gl_redirect.h'],
+        'config.pxi', 'common.pxi', 'cgl.pxd', 'gl_redirect.h', 'memory.pxi'],
     'opengl_utils.pyx': [
         'opengl_utils_def.pxi', 'cgl.pxd', ],
     'shader.pxd': ['cgl.pxd', 'transformation.pxd', 'vertex.pxd'],
