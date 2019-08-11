@@ -156,6 +156,7 @@ c_options['use_rpi'] = platform == 'rpi'
 c_options['use_egl'] = False
 c_options['use_opengl_es2'] = None
 c_options['use_opengl_mock'] = environ.get('READTHEDOCS', None) == 'True'
+c_options['use_opengl_pyodide'] = None
 c_options['use_sdl2'] = None
 c_options['use_pangoft2'] = None
 c_options['use_ios'] = False
@@ -233,8 +234,7 @@ class KivyBuildExt(build_ext, object):
     def finalize_options(self):
         retval = super(KivyBuildExt, self).finalize_options()
         global build_path
-        if (self.build_lib is not None and exists(self.build_lib) and
-                not self.inplace):
+        if (self.build_lib is not None and not self.inplace):
             build_path = self.build_lib
         return retval
 
@@ -387,7 +387,8 @@ except ImportError:
     print('User distribution detected, avoid portable command.')
 
 # Detect which opengl version headers to use
-if platform in ('android', 'darwin', 'ios', 'rpi', 'mali', 'vc'):
+if platform in ('android', 'darwin', 'ios', 'rpi', 'mali', 'vc') or \
+        c_options['use_opengl_pyodide']:
     c_options['use_opengl_es2'] = True
 elif c_options['use_opengl_es2'] is None:
     c_options['use_opengl_es2'] = \
@@ -606,7 +607,7 @@ def determine_gl_flags():
     base_flags = {'include_dirs': [kivy_graphics_include], 'libraries': []}
     cross_sysroot = environ.get('KIVY_CROSS_SYSROOT')
 
-    if c_options['use_opengl_mock']:
+    if c_options['use_opengl_mock'] or c_options['use_opengl_pyodide']:
         return flags, base_flags
     if platform == 'win32':
         flags['libraries'] = ['opengl32', 'glew32']
@@ -740,6 +741,7 @@ graphics_dependencies = {
     'compiler.pyx': ['context_instructions.pxd'],
     'cgl.pyx': ['cgl.pxd'],
     'cgl_mock.pyx': ['cgl.pxd'],
+    'cgl_pyodide.pyx': ['cgl.pxd'],
     'cgl_sdl2.pyx': ['cgl.pxd'],
     'cgl_gl.pyx': ['cgl.pxd'],
     'cgl_glew.pyx': ['cgl.pxd'],
@@ -814,6 +816,7 @@ sources = {
     'graphics/vertex_instructions.pyx': merge(base_flags, gl_flags_base),
     'graphics/cgl.pyx': merge(base_flags, gl_flags_base),
     'graphics/cgl_backend/cgl_mock.pyx': merge(base_flags, gl_flags_base),
+    'graphics/cgl_backend/cgl_pyodide.pyx': merge(base_flags, gl_flags_base),
     'graphics/cgl_backend/cgl_gl.pyx': merge(base_flags, gl_flags),
     'graphics/cgl_backend/cgl_glew.pyx': merge(base_flags, gl_flags),
     'graphics/cgl_backend/cgl_sdl2.pyx': merge(base_flags, gl_flags_base),

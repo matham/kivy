@@ -10,7 +10,9 @@ environmental variable.
 Currently, OpenGL is used through direct linking (gl/glew), sdl2,
 or by mocking it. Setting ``USE_OPENGL_MOCK`` disables gl/glew.
 Similarly, setting ``USE_SDL2`` to ``0`` will disable sdl2. Mocking
-is always available.
+is always available. The ``pyodide`` backend doesn't require any special
+compilation libraries because it calls the JavaScript libraries dynamically
+at runtime.
 
 At runtime the following backends are available and can be set using
 ``KIVY_GL_BACKEND``:
@@ -24,6 +26,7 @@ At runtime the following backends are available and can be set using
 * ``angle_sdl2`` -- Available on Windows with Python 3.5+.
   Unavailable when ``USE_SDL2=0``. Requires ``kivy_deps.sdl2`` and
   ``kivy_deps.angle`` be installed.
+* ``pyodide`` -- Available on Pyodide (JavaScript in the browser).
 * ``mock`` -- Always available. Doesn't actually do anything.
 
 
@@ -60,15 +63,19 @@ cpdef cgl_get_backend_name(allowed=[], ignored=[]):
     if name:
         return name.lower()
 
-    for name in ('glew', 'sdl2', 'gl', 'mock'):
+    for name in ('glew', 'sdl2', 'gl', 'pyodide', 'mock'):
         if allowed and name not in allowed:
             continue
         if name in ignored:
             continue
 
-        mod = importlib.import_module("kivy.graphics.cgl_backend.cgl_{}".format(name))
-        if mod.is_backend_supported():
-            return name
+        try:
+            mod = importlib.import_module(
+                "kivy.graphics.cgl_backend.cgl_{}".format(name))
+            if mod.is_backend_supported():
+                return name
+        except ImportError:
+            pass
     assert False
 
 
@@ -93,7 +100,7 @@ cpdef cgl_init(allowed=[], ignored=[]):
             raise Exception("CGL: ANGLE backend can be used only on Windows")
         backend = "sdl2"
 
-    if cgl_name not in {'glew', 'sdl2', 'angle_sdl2', 'mock', 'gl'}:
+    if cgl_name not in {'glew', 'sdl2', 'angle_sdl2', 'mock', 'gl', 'pyodide'}:
         raise ValueError('{} is not a recognized GL backend'.format(backend))
 
     mod = importlib.import_module("kivy.graphics.cgl_backend.cgl_{}".format(backend))
