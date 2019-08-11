@@ -17,6 +17,7 @@ __all__ = (
     'ExceptionManager',
     'runTouchApp',
     'async_runTouchApp',
+    'gen_runTouchApp',
     'stopTouchApp',
 )
 
@@ -362,6 +363,25 @@ class EventLoopBase(EventDispatcher):
         Logger.info("Window: exiting mainloop and closing.")
         self.close()
 
+    def gen_mainloop(self):
+        from kivy.base import ExceptionManager, stopTouchApp
+        while not self.quit and self.status == 'started':
+            try:
+                yield from self.async_idle()
+                if self.window:
+                    self.window.mainloop()
+            except BaseException as inst:
+                # use exception manager first
+                r = ExceptionManager.handle_exception(inst)
+                if r == ExceptionManager.RAISE:
+                    stopTouchApp()
+                    raise
+                else:
+                    pass
+
+        Logger.info("Window: exiting mainloop and closing.")
+        self.close()
+
     def idle(self):
         '''This function is called after every frame. By default:
 
@@ -373,32 +393,7 @@ class EventLoopBase(EventDispatcher):
 
         # update dt
         Clock.tick()
-
-        # read and dispatch input from providers
-        self.dispatch_input()
-
-        # flush all the canvas operation
-        Builder.sync()
-
-        # tick before draw
-        Clock.tick_draw()
-
-        # flush all the canvas operation
-        Builder.sync()
-
-        window = self.window
-        if window and window.canvas.needs_redraw:
-            window.dispatch('on_draw')
-            window.dispatch('on_flip')
-
-        # don't loop if we don't have listeners !
-        if len(self.event_listeners) == 0:
-            Logger.error('Base: No event listeners have been created')
-            Logger.error('Base: Application will leave')
-            self.exit()
-            return False
-
-        return self.quit
+        return self._process_idle()
 
     async def async_idle(self):
         '''Identical to :meth:`idle`, but instead used when running
@@ -407,7 +402,18 @@ class EventLoopBase(EventDispatcher):
 
         # update dt
         await Clock.async_tick()
+        return self._process_idle()
 
+    def gen_idle(self):
+        '''Identical to :meth:`idle`, but instead used when running
+        the event loop as generator.
+        '''
+
+        # update dt
+        yield from Clock.gen_tick()
+        return self._process_idle()
+
+    def _process_idle(self):
         # read and dispatch input from providers
         self.dispatch_input()
 
@@ -581,6 +587,24 @@ async def async_runTouchApp(widget=None, slave=False, async_lib=None):
 
     try:
         await EventLoop.async_mainloop()
+    finally:
+        stopTouchApp()
+
+
+def gen_runTouchApp(widget=None, slave=False):
+    '''Identical to :func:`runTouchApp` but instead it runs the event loop
+    as a generator.
+
+    .. versionadded:: 2.0.0
+    '''
+    _runTouchApp_prepare(widget=widget, slave=slave)
+
+    # we are in a slave mode, don't do dispatching.
+    if slave:
+        return
+
+    try:
+        yield from EventLoop.gen_mainloop()
     finally:
         stopTouchApp()
 

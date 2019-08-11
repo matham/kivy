@@ -402,13 +402,15 @@ to both case.
 
 '''
 
-__all__ = ('App', 'runTouchApp', 'async_runTouchApp', 'stopTouchApp')
+__all__ = ('App', 'runTouchApp', 'async_runTouchApp', 'gen_runTouchApp',
+           'stopTouchApp')
 
 import os
 from inspect import getfile
 from os.path import dirname, join, exists, sep, expanduser, isfile
 from kivy.config import ConfigParser
-from kivy.base import runTouchApp, async_runTouchApp, stopTouchApp
+from kivy.base import runTouchApp, async_runTouchApp, stopTouchApp, \
+    gen_runTouchApp
 from kivy.compat import string_types
 from kivy.factory import Factory
 from kivy.logger import Logger
@@ -960,6 +962,18 @@ Context.html#getFilesDir()>`_ is returned.
         '''
         self._run_prepare()
         await async_runTouchApp(async_lib=async_lib)
+        self.stop()
+
+    def gen_run(self):
+        '''Identical to :meth:`run`, but it runs the event loop
+        as a generator.
+
+        See :mod:`kivy.app` for example usage.
+
+        .. versionadded:: 2.0.0
+        '''
+        self._run_prepare()
+        yield from gen_runTouchApp()
         self.stop()
 
     def stop(self, *largs):
