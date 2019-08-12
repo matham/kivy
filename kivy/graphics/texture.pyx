@@ -715,8 +715,8 @@ cdef class Texture:
                 _gl_prepare_pixels_upload(self._width)
 
                 # do the initial upload with fake data
-                cgl.glTexImage2D(self._target, 0, iglfmt, self._width, self._height,
-                        0, glfmt, iglbufferfmt, data)
+                cgl.glTexImage2DSize(self._target, 0, iglfmt, self._width, self._height,
+                        0, glfmt, iglbufferfmt, data, <GLint>datasize)
 
                 # free the data !
                 free(data)
@@ -1020,11 +1020,11 @@ cdef class Texture:
                 cgl.glCompressedTexImage2D(target, _mipmap_level, glfmt, w, h, 0,
                         <GLsizei>datasize, cdata)
             elif is_allocated:
-                cgl.glTexSubImage2D(target, _mipmap_level, x, y, w, h, glfmt,
-                    glbufferfmt, cdata)
+                cgl.glTexSubImage2DSize(target, _mipmap_level, x, y, w, h, glfmt,
+                    glbufferfmt, cdata, <GLint>datasize)
             else:
-                cgl.glTexImage2D(target, _mipmap_level, iglfmt, w, h, 0, glfmt,
-                    glbufferfmt, cdata)
+                cgl.glTexImage2DSize(target, _mipmap_level, iglfmt, w, h, 0, glfmt,
+                    glbufferfmt, cdata, <GLint>datasize)
 
             if _mipmap_generation:
                 cgl.glGenerateMipmap(target)

@@ -1274,6 +1274,16 @@ def glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei
     cgl.glTexImage2D(target, level, internalformat, width, height, border,
                           format, type, <GLvoid *><char *>pixels)
 
+def glTexImage2DSize(GLenum target, GLint level, GLint internalformat, GLsizei
+                 width, GLsizei height, GLint border, GLenum format, GLenum
+                 type,  bytes pixels, GLint size):
+    '''See: `glTexImage2D() on Kronos website. It takes a size parameter of the
+    pixels in bytes.
+    <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml>`_
+    '''
+    cgl.glTexImage2DSize(target, level, internalformat, width, height, border,
+                          format, type, <GLvoid *><char *>pixels, size)
+
 def glTexParameterf(GLenum target, GLenum pname, GLfloat param):
     '''See: `glTexParameterf() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameterf.xml>`_
@@ -1312,6 +1322,16 @@ def glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     '''
     cgl.glTexSubImage2D(target, level, xoffset, yoffset, width, height,
                              format, type, <GLvoid *><char *>pixels)
+
+def glTexSubImage2DSize(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                    GLsizei width, GLsizei height, GLenum format, GLenum type,
+                    bytes pixels, GLint size):
+    '''See: `glTexSubImage2D() on Kronos website. Has a size parameter indicating
+    the pixels size in bytes.
+    <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexSubImage2D.xml>`_
+    '''
+    cgl.glTexSubImage2DSize(target, level, xoffset, yoffset, width, height,
+                             format, type, <GLvoid *><char *>pixels, size)
 
 def glUniform1f(GLint location, GLfloat x):
     '''See: `glUniform1f() on Kronos website

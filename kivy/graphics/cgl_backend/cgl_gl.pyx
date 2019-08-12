@@ -151,6 +151,14 @@ def init_backend():
         link_static()
 
 
+cdef void __stdcall glTexSubImage2DSize(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
+    cgl.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels)
+
+
+cdef void __stdcall glTexImage2DSize(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
+    cgl.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels)
+
+
 cpdef link_static():
     IF USE_OPENGL_MOCK:
         pass
@@ -256,9 +264,11 @@ cpdef link_static():
         cgl.glStencilOp = glStencilOp
         cgl.glStencilOpSeparate = glStencilOpSeparate
         cgl.glTexImage2D = glTexImage2D
+        cgl.glTexImage2DSize = glTexImage2DSize
         cgl.glTexParameterf = glTexParameterf
         cgl.glTexParameteri = glTexParameteri
         cgl.glTexSubImage2D = glTexSubImage2D
+        cgl.glTexSubImage2DSize = glTexSubImage2DSize
         cgl.glUniform1f = glUniform1f
         cgl.glUniform1fv = glUniform1fv
         cgl.glUniform1i = glUniform1i

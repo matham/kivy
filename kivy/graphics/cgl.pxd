@@ -610,9 +610,11 @@ ctypedef struct GLES2_Context:
     void (__stdcall *glStencilOp)(GLenum fail, GLenum zfail, GLenum zpass) nogil
     void (__stdcall *glStencilOpSeparate)(GLenum face, GLenum fail, GLenum zfail, GLenum zpass) nogil
     void (__stdcall *glTexImage2D)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void *) nogil
+    void (__stdcall *glTexImage2DSize)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void *, GLint) nogil
     void (__stdcall *glTexParameterf)(GLenum target, GLenum pname, GLfloat param) nogil
     void (__stdcall *glTexParameteri)(GLenum, GLenum, GLint) nogil
     void (__stdcall *glTexSubImage2D)(GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *) nogil
+    void (__stdcall *glTexSubImage2DSize)(GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *, GLint) nogil
     void (__stdcall *glUniform1f)(GLint location, GLfloat x) nogil
     void (__stdcall *glUniform1fv)(GLint location, GLsizei count, const GLfloat* v) nogil
     void (__stdcall *glUniform1i)(GLint, GLint) nogil

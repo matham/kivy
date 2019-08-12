@@ -950,6 +950,10 @@ cdef void __stdcall dbgTexImage2D (GLenum target, GLint level, GLint internalfor
     with gil:
         gil_dbgTexImage2D(target, level, internalformat, width, height, border, format, type,   pixels)
 
+cdef void __stdcall dbgTexImage2DSize (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
+    with gil:
+        gil_dbgTexImage2D(target, level, internalformat, width, height, border, format, type, pixels)
+
 cdef void __stdcall gil_dbgTexImage2D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels) with gil:
     gl_debug_print("GL glTexImage2D( target = ", target, ", level = ", level, ", internalformat = ", internalformat, ", width = ", width, ", height = ", height, ", border = ", border, ", format = ", format, ", type = ", type, ", pixels*=", repr(hex(<long long> pixels)), ", )")
     cgl_native.glTexImage2D ( target, level, internalformat, width, height, border, format, type, pixels)
@@ -994,6 +998,10 @@ cdef void __stdcall gil_dbgTexParameteri (GLenum target, GLenum pname, GLint par
 #     if ret: print("OpenGL Error %d / %x" % (ret, ret))
 #
 cdef void __stdcall dbgTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels) nogil:
+    with gil:
+        gil_dbgTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type,   pixels)
+#
+cdef void __stdcall dbgTexSubImage2DSize (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
     with gil:
         gil_dbgTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type,   pixels)
 
@@ -1390,9 +1398,11 @@ def init_backend_debug():
     cgl_debug.glStencilOp = dbgStencilOp
     cgl_debug.glStencilOpSeparate = dbgStencilOpSeparate
     cgl_debug.glTexImage2D = dbgTexImage2D
+    cgl_debug.glTexImage2DSize = dbgTexImage2DSize
     cgl_debug.glTexParameterf = dbgTexParameterf
     cgl_debug.glTexParameteri = dbgTexParameteri
     cgl_debug.glTexSubImage2D = dbgTexSubImage2D
+    cgl_debug.glTexSubImage2DSize = dbgTexSubImage2DSize
     cgl_debug.glUniform1f = dbgUniform1f
     cgl_debug.glUniform1fv = dbgUniform1fv
     cgl_debug.glUniform1i = dbgUniform1i

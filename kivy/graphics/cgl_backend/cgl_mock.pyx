@@ -296,7 +296,10 @@ cdef void __stdcall mockVertexAttribPointer(GLuint indx, GLint size, GLenum type
     pass
 cdef void __stdcall mockViewport(GLint x, GLint y, GLsizei width, GLsizei height) nogil:
     pass
-
+cdef void __stdcall mockTexSubImage2DSize(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
+    pass
+cdef void __stdcall mockTexImage2DSize(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
+    pass
 
 def init_backend():
     cgl.glActiveTexture = mockActiveTexture
@@ -400,9 +403,11 @@ def init_backend():
     cgl.glStencilOp = mockStencilOp
     cgl.glStencilOpSeparate = mockStencilOpSeparate
     cgl.glTexImage2D = mockTexImage2D
+    cgl.glTexImage2DSize = mockTexImage2DSize
     cgl.glTexParameterf = mockTexParameterf
     cgl.glTexParameteri = mockTexParameteri
     cgl.glTexSubImage2D = mockTexSubImage2D
+    cgl.glTexSubImage2DSize = mockTexSubImage2DSize
     cgl.glUniform1f = mockUniform1f
     cgl.glUniform1fv = mockUniform1fv
     cgl.glUniform1i = mockUniform1i
