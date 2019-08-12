@@ -2070,6 +2070,5 @@ else:
         ('pygame', 'window_pygame', 'WindowPygame')]
 if platform == 'linux':
     window_impl += [('x11', 'window_x11', 'WindowX11')]
-window_impl += [
-    ('pyiodide', 'window_pyiodide', 'WindowPyodide')]
+window_impl += [('pyiodide', 'window_pyodide', 'WindowPyodide')]
 Window = core_select_lib('window', window_impl, True)
