@@ -30,7 +30,21 @@ class WindowPyodide(WindowBase):
 
     def initialize_gl(self):
         from kivy.graphics.cgl_backend.cgl_pyodide import set_pyodide_gl
-        self._pyodide_gl = self._pyodide_canvas.getContext("webgl2")
+        self._pyodide_gl = context = self._pyodide_canvas.getContext("webgl2")
+
+        backing_store = (
+            getattr(context, 'backingStorePixelRatio', 0) or
+            getattr(context, 'webkitBackingStorePixel', 0) or
+            getattr(context, 'mozBackingStorePixelRatio', 0) or
+            getattr(context, 'msBackingStorePixelRatio', 0) or
+            getattr(context, 'oBackingStorePixelRatio', 0) or
+            getattr(context, 'backendStorePixelRatio', 0) or
+            1
+        )
+        self._density = (
+            getattr(js_window, 'devicePixelRatio', 0) or 1) / backing_store
+        self.dpi = self._density * 96.
+
         set_pyodide_gl(self._pyodide_gl)
         super().initialize_gl()
 
@@ -52,19 +66,6 @@ class WindowPyodide(WindowBase):
         w, h = self.system_size
         canvas.setAttribute('width', w)
         canvas.setAttribute('height', h)
-        
-        backing_store = (
-            getattr(context, 'backingStorePixelRatio', 0) or
-            getattr(context, 'webkitBackingStorePixel', 0) or
-            getattr(context, 'mozBackingStorePixelRatio', 0) or
-            getattr(context, 'msBackingStorePixelRatio', 0) or
-            getattr(context, 'oBackingStorePixelRatio', 0) or
-            getattr(context, 'backendStorePixelRatio', 0) or
-            1
-        )
-        self._density = (
-            getattr(window, 'devicePixelRatio', 0) or 1) / backing_store
-        self.dpi = self._density * 96.
 
         # self._focus = True
 
