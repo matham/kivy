@@ -410,7 +410,7 @@ from inspect import getfile
 from os.path import dirname, join, exists, sep, expanduser, isfile
 from kivy.config import ConfigParser
 from kivy.base import runTouchApp, async_runTouchApp, stopTouchApp, \
-    gen_runTouchApp
+    gen_runTouchApp, schedule_pyodide_TouchApp
 from kivy.compat import string_types
 from kivy.factory import Factory
 from kivy.logger import Logger

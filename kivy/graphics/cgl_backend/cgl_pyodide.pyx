@@ -151,7 +151,7 @@ cdef void __stdcall pyodideUniform2f(GLint location, GLfloat x, GLfloat y) with 
 
 cdef void __stdcall pyodideUniform2fv(GLint location, GLsizei count, const GLfloat* v) with gil:
     Logger.warn('before glUniform2fv')
-    pyodide_gl.uniform2fv(locations[location], get_float_array(count, v))
+    pyodide_gl.uniform2fv(locations[location], get_float_array(count * 2, v))
     Logger.warn('after glUniform2fv')
 
 
@@ -163,7 +163,7 @@ cdef void __stdcall pyodideUniform2i(GLint location, GLint x, GLint y) with gil:
 
 cdef void __stdcall pyodideUniform2iv(GLint location, GLsizei count, const GLint* v) with gil:
     Logger.warn('before glUniform2iv')
-    pyodide_gl.uniform2iv(locations[location], get_int_array(count, v))
+    pyodide_gl.uniform2iv(locations[location], get_int_array(count * 2, v))
     Logger.warn('after glUniform2iv')
 
 
@@ -175,7 +175,7 @@ cdef void __stdcall pyodideUniform3f(GLint location, GLfloat x, GLfloat y, GLflo
 
 cdef void __stdcall pyodideUniform3fv(GLint location, GLsizei count, const GLfloat* v) with gil:
     Logger.warn('before glUniform3fv')
-    pyodide_gl.uniform3fv(locations[location], get_float_array(count, v))
+    pyodide_gl.uniform3fv(locations[location], get_float_array(count * 3, v))
     Logger.warn('after glUniform3fv')
 
 
@@ -187,7 +187,7 @@ cdef void __stdcall pyodideUniform3i(GLint location, GLint x, GLint y, GLint z) 
 
 cdef void __stdcall pyodideUniform3iv(GLint location, GLsizei count, const GLint* v) with gil:
     Logger.warn('before glUniform3iv')
-    pyodide_gl.uniform3iv(locations[location], get_int_array(count, v))
+    pyodide_gl.uniform3iv(locations[location], get_int_array(count * 3, v))
     Logger.warn('after glUniform3iv')
 
 
@@ -199,7 +199,7 @@ cdef void __stdcall pyodideUniform4f(GLint location, GLfloat x, GLfloat y, GLflo
 
 cdef void __stdcall pyodideUniform4fv(GLint location, GLsizei count, const GLfloat* v) with gil:
     Logger.warn('before glUniform4fv')
-    pyodide_gl.uniform4fv(locations[location], get_float_array(count, v))
+    pyodide_gl.uniform4fv(locations[location], get_float_array(count * 4, v))
     Logger.warn('after glUniform4fv')
 
 
@@ -211,25 +211,25 @@ cdef void __stdcall pyodideUniform4i(GLint location, GLint x, GLint y, GLint z, 
 
 cdef void __stdcall pyodideUniform4iv(GLint location, GLsizei count, const GLint* v) with gil:
     Logger.warn('before glUniform4iv')
-    pyodide_gl.uniform4iv(locations[location], get_int_array(count, v))
+    pyodide_gl.uniform4iv(locations[location], get_int_array(count * 4, v))
     Logger.warn('after glUniform4iv')
 
 
 cdef void __stdcall pyodideUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) with gil:
     Logger.warn('before glUniformMatrix2fv')
-    pyodide_gl.uniformMatrix2fv(locations[location], transpose, get_float_array(count, value))
+    pyodide_gl.uniformMatrix2fv(locations[location], transpose, get_float_array(count * 2 * 2, value))
     Logger.warn('after glUniformMatrix2fv')
 
 
 cdef void __stdcall pyodideUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) with gil:
     Logger.warn('before glUniformMatrix3fv')
-    pyodide_gl.uniformMatrix3fv(locations[location], transpose, get_float_array(count, value))
+    pyodide_gl.uniformMatrix3fv(locations[location], transpose, get_float_array(count * 3 * 3, value))
     Logger.warn('after glUniformMatrix3fv')
 
 
 cdef void __stdcall pyodideUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) with gil:
     Logger.warn('before glUniformMatrix4fv')
-    pyodide_gl.uniformMatrix4fv(locations[location], transpose, get_float_array(count, value))
+    pyodide_gl.uniformMatrix4fv(locations[location], transpose, get_float_array(count * 4 * 4, value))
     Logger.warn('after glUniformMatrix4fv')
 
 
@@ -737,8 +737,9 @@ cdef GLboolean __stdcall pyodideIsBuffer(GLuint buffer) with gil:
 
 cdef GLboolean __stdcall pyodideIsFramebuffer(GLuint framebuffer) with gil:
     Logger.warn('before glIsFramebuffer')
-    return pyodide_gl.isFramebuffer(frame_buffers[framebuffer])
+    res = pyodide_gl.isFramebuffer(frame_buffers[framebuffer])
     Logger.warn('after glIsFramebuffer')
+    return res
 
 
 cdef GLboolean __stdcall pyodideIsRenderbuffer(GLuint renderbuffer) with gil:

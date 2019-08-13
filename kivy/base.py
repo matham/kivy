@@ -368,7 +368,7 @@ class EventLoopBase(EventDispatcher):
         from kivy.base import ExceptionManager, stopTouchApp
         while not self.quit and self.status == 'started':
             try:
-                yield from self.async_idle()
+                yield from self.gen_idle()
                 if self.window:
                     self.window.mainloop()
             except BaseException as inst:

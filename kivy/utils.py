@@ -438,6 +438,8 @@ def _get_platform():
         return 'linux'
     elif _sys_platform.startswith('freebsd'):
         return 'linux'
+    elif _sys_platform == 'emscripten':
+        return 'emscripten'
     return 'unknown'
 
 
