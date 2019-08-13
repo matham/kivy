@@ -589,7 +589,9 @@ ctypedef struct GLES2_Context:
     void (__stdcall *glGetTexParameterfv)(GLenum target, GLenum pname, GLfloat* params) nogil
     void (__stdcall *glGetTexParameteriv)(GLenum target, GLenum pname, GLint* params) nogil
     void (__stdcall *glGetUniformfv)(GLuint program, GLint location, GLfloat* params) nogil
+    void (__stdcall *glGetUniformfvSize)(GLuint program, GLint location, GLfloat* params, GLint) nogil
     void (__stdcall *glGetUniformiv)(GLuint program, GLint location, GLint* params) nogil
+    void (__stdcall *glGetUniformivSize)(GLuint program, GLint location, GLint* params, GLint) nogil
     void (__stdcall *glGetVertexAttribfv)(GLuint index, GLenum pname, GLfloat* params) nogil
     void (__stdcall *glGetVertexAttribiv)(GLuint index, GLenum pname, GLint* params) nogil
     void (__stdcall *glHint)(GLenum target, GLenum mode) nogil

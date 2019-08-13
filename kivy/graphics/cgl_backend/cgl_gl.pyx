@@ -159,6 +159,14 @@ cdef void __stdcall glTexImage2DSize(GLenum target, GLint level, GLint internalf
     cgl.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels)
 
 
+cdef void __stdcall glGetUniformfvSize(GLuint program, GLint location, GLfloat* params, GLint size) nogil:
+    cgl.glGetUniformfv(program, location, params)
+
+
+cdef void __stdcall glGetUniformivSize(GLuint program, GLint location, GLint* params, GLint size) nogil:
+    cgl.glGetUniformiv(program, location, params)
+
+
 cpdef link_static():
     IF USE_OPENGL_MOCK:
         pass
@@ -294,3 +302,5 @@ cpdef link_static():
         cgl.glVertexAttrib4f = glVertexAttrib4f
         cgl.glVertexAttribPointer = glVertexAttribPointer
         cgl.glViewport = glViewport
+        cgl.glGetUniformfvSize = glGetUniformfvSize
+        cgl.glGetUniformivSize = glGetUniformivSize

@@ -691,6 +691,15 @@ cdef void __stdcall gil_dbgGetUniformfv (GLuint program, GLint location, GLfloat
     cgl_native.glGetUniformfv ( program, location, params)
     gl_check_error()
 
+cdef void __stdcall dbgGetUniformfvSize(GLuint program, GLint location, GLfloat* params, GLint size) nogil:
+    with gil:
+        gil_dbgGetUniformfvSize(program, location,  params, size)
+
+cdef void __stdcall gil_dbgGetUniformfvSize(GLuint program, GLint location, GLfloat* params, GLint size) with gil:
+    gl_debug_print("GL glGetUniformfv( program = ", program, ", location = ", location, ", params*=", repr(hex(<long long> params)), ", )")
+    cgl_native.glGetUniformfvSize( program, location, params, size)
+    gl_check_error()
+
 cdef void __stdcall dbgGetUniformiv (GLuint program, GLint location, GLint* params) nogil:
     with gil:
         gil_dbgGetUniformiv(program, location,  params)
@@ -698,6 +707,15 @@ cdef void __stdcall dbgGetUniformiv (GLuint program, GLint location, GLint* para
 cdef void __stdcall gil_dbgGetUniformiv (GLuint program, GLint location, GLint* params) with gil:
     gl_debug_print("GL glGetUniformiv( program = ", program, ", location = ", location, ", params*=", repr(hex(<long long> params)), ", )")
     cgl_native.glGetUniformiv ( program, location, params)
+    gl_check_error()
+
+cdef void __stdcall dbgGetUniformivSize (GLuint program, GLint location, GLint* params, GLint size) nogil:
+    with gil:
+        gil_dbgGetUniformivSize(program, location,  params, size)
+
+cdef void __stdcall gil_dbgGetUniformivSize (GLuint program, GLint location, GLint* params, GLint size) with gil:
+    gl_debug_print("GL glGetUniformiv( program = ", program, ", location = ", location, ", params*=", repr(hex(<long long> params)), ", )")
+    cgl_native.glGetUniformivSize ( program, location, params, size)
     gl_check_error()
 
 cdef int  __stdcall dbgGetUniformLocation (GLuint program, const GLchar* name) nogil:
@@ -950,13 +968,18 @@ cdef void __stdcall dbgTexImage2D (GLenum target, GLint level, GLint internalfor
     with gil:
         gil_dbgTexImage2D(target, level, internalformat, width, height, border, format, type,   pixels)
 
-cdef void __stdcall dbgTexImage2DSize (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
-    with gil:
-        gil_dbgTexImage2D(target, level, internalformat, width, height, border, format, type, pixels)
-
 cdef void __stdcall gil_dbgTexImage2D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels) with gil:
     gl_debug_print("GL glTexImage2D( target = ", target, ", level = ", level, ", internalformat = ", internalformat, ", width = ", width, ", height = ", height, ", border = ", border, ", format = ", format, ", type = ", type, ", pixels*=", repr(hex(<long long> pixels)), ", )")
     cgl_native.glTexImage2D ( target, level, internalformat, width, height, border, format, type, pixels)
+    gl_check_error()
+
+cdef void __stdcall dbgTexImage2DSize (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
+    with gil:
+        gil_dbgTexImage2DSize(target, level, internalformat, width, height, border, format, type, pixels, size)
+
+cdef void __stdcall gil_dbgTexImage2DSize (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels, GLint size) with gil:
+    gl_debug_print("GL glTexImage2D( target = ", target, ", level = ", level, ", internalformat = ", internalformat, ", width = ", width, ", height = ", height, ", border = ", border, ", format = ", format, ", type = ", type, ", pixels*=", repr(hex(<long long> pixels)), ", )")
+    cgl_native.glTexImage2DSize ( target, level, internalformat, width, height, border, format, type, pixels, size)
     gl_check_error()
 
 cdef void __stdcall dbgTexParameterf (GLenum target, GLenum pname, GLfloat param) nogil:
@@ -1000,14 +1023,19 @@ cdef void __stdcall gil_dbgTexParameteri (GLenum target, GLenum pname, GLint par
 cdef void __stdcall dbgTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels) nogil:
     with gil:
         gil_dbgTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type,   pixels)
-#
-cdef void __stdcall dbgTexSubImage2DSize (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
-    with gil:
-        gil_dbgTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type,   pixels)
 
 cdef void __stdcall gil_dbgTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels) with gil:
     gl_debug_print("GL glTexSubImage2D( target = ", target, ", level = ", level, ", xoffset = ", xoffset, ", yoffset = ", yoffset, ", width = ", width, ", height = ", height, ", format = ", format, ", type = ", type, ", pixels*=", repr(hex(<long long> pixels)), ", )")
     cgl_native.glTexSubImage2D ( target, level, xoffset, yoffset, width, height, format, type, pixels)
+    gl_check_error()
+
+cdef void __stdcall dbgTexSubImage2DSize (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels, GLint size) nogil:
+    with gil:
+        gil_dbgTexSubImage2DSize(target, level, xoffset, yoffset, width, height, format, type,   pixels, size)
+
+cdef void __stdcall gil_dbgTexSubImage2DSize (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels, GLint size) with gil:
+    gl_debug_print("GL glTexSubImage2D( target = ", target, ", level = ", level, ", xoffset = ", xoffset, ", yoffset = ", yoffset, ", width = ", width, ", height = ", height, ", format = ", format, ", type = ", type, ", pixels*=", repr(hex(<long long> pixels)), ", )")
+    cgl_native.glTexSubImage2DSize ( target, level, xoffset, yoffset, width, height, format, type, pixels, size)
     gl_check_error()
 
 cdef void __stdcall dbgUniform1f (GLint location, GLfloat x) nogil:
@@ -1369,7 +1397,9 @@ def init_backend_debug():
     cgl_debug.glGetTexParameterfv = dbgGetTexParameterfv
     cgl_debug.glGetTexParameteriv = dbgGetTexParameteriv
     cgl_debug.glGetUniformfv = dbgGetUniformfv
+    cgl_debug.glGetUniformfvSize = dbgGetUniformfvSize
     cgl_debug.glGetUniformiv = dbgGetUniformiv
+    cgl_debug.glGetUniformivSize = dbgGetUniformivSize
     cgl_debug.glGetUniformLocation = dbgGetUniformLocation
     cgl_debug.glGetVertexAttribfv = dbgGetVertexAttribfv
     cgl_debug.glGetVertexAttribiv = dbgGetVertexAttribiv

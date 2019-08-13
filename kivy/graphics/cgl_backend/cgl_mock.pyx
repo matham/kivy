@@ -178,7 +178,11 @@ cdef void __stdcall mockGetTexParameteriv(GLenum target, GLenum pname, GLint* pa
     pass
 cdef void __stdcall mockGetUniformfv(GLuint program, GLint location, GLfloat* params) nogil:
     pass
+cdef void __stdcall mockGetUniformfvSize(GLuint program, GLint location, GLfloat* params, GLint size) nogil:
+    pass
 cdef void __stdcall mockGetUniformiv(GLuint program, GLint location, GLint* params) nogil:
+    pass
+cdef void __stdcall mockGetUniformivSize(GLuint program, GLint location, GLint* params, GLint size) nogil:
     pass
 cdef void __stdcall mockGetVertexAttribfv(GLuint index, GLenum pname, GLfloat* params) nogil:
     pass
@@ -374,7 +378,9 @@ def init_backend():
     cgl.glGetTexParameterfv = mockGetTexParameterfv
     cgl.glGetTexParameteriv = mockGetTexParameteriv
     cgl.glGetUniformfv = mockGetUniformfv
+    cgl.glGetUniformfvSize = mockGetUniformfvSize
     cgl.glGetUniformiv = mockGetUniformiv
+    cgl.glGetUniformivSize = mockGetUniformivSize
     cgl.glGetUniformLocation = mockGetUniformLocation
     cgl.glGetVertexAttribfv = mockGetVertexAttribfv
     cgl.glGetVertexAttribiv = mockGetVertexAttribiv

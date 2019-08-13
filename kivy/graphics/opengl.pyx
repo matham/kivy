@@ -409,6 +409,7 @@ _GL_GET_SIZE = {
     GL_TEXTURE_BINDING_CUBE_MAP: 1,
     GL_UNPACK_ALIGNMENT: 1,
     GL_VIEWPORT: 4,
+    GL_CURRENT_VERTEX_ATTRIB: 4,
 }
 
 # update sizes
@@ -1032,20 +1033,26 @@ def glGetTexParameteriv(GLenum target, GLenum pname):
     cgl.glGetTexParameteriv(target, pname, &params)
     return params
 
-def glGetUniformfv(GLuint program, GLint location):
+def glGetUniformfv(GLuint program, GLint location, GLint size=1):
     '''See: `glGetUniformfv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glGetUniformfv.xml>`_
     '''
+    if size != 1:
+        raise ValueError('glGetUniformfv only supports getting parameters of size 1, currently')
+
     cdef GLfloat params = 0
-    cgl.glGetUniformfv(program, location, &params)
+    cgl.glGetUniformfvSize(program, location, &params, size)
     return params
 
-def glGetUniformiv(GLuint program, GLint location):
+def glGetUniformiv(GLuint program, GLint location, GLint size=1):
     '''See: `glGetUniformiv() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glGetUniformiv.xml>`_
     '''
+    if size != 1:
+        raise ValueError('glGetUniformfv only supports getting parameters of size 1, currently')
+
     cdef GLint params = 0
-    cgl.glGetUniformiv(program, location, &params)
+    cgl.glGetUniformivSize(program, location, &params, size)
     return params
 
 def glGetUniformLocation(GLuint program, bytes name):
@@ -1271,18 +1278,8 @@ def glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei
     '''See: `glTexImage2D() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml>`_
     '''
-    cgl.glTexImage2D(target, level, internalformat, width, height, border,
-                          format, type, <GLvoid *><char *>pixels)
-
-def glTexImage2DSize(GLenum target, GLint level, GLint internalformat, GLsizei
-                 width, GLsizei height, GLint border, GLenum format, GLenum
-                 type,  bytes pixels, GLint size):
-    '''See: `glTexImage2D() on Kronos website. It takes a size parameter of the
-    pixels in bytes.
-    <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml>`_
-    '''
     cgl.glTexImage2DSize(target, level, internalformat, width, height, border,
-                          format, type, <GLvoid *><char *>pixels, size)
+                          format, type, <GLvoid *><char *>pixels, len(pixels))
 
 def glTexParameterf(GLenum target, GLenum pname, GLfloat param):
     '''See: `glTexParameterf() on Kronos website
@@ -1320,18 +1317,8 @@ def glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     '''See: `glTexSubImage2D() on Kronos website
     <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexSubImage2D.xml>`_
     '''
-    cgl.glTexSubImage2D(target, level, xoffset, yoffset, width, height,
-                             format, type, <GLvoid *><char *>pixels)
-
-def glTexSubImage2DSize(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-                    GLsizei width, GLsizei height, GLenum format, GLenum type,
-                    bytes pixels, GLint size):
-    '''See: `glTexSubImage2D() on Kronos website. Has a size parameter indicating
-    the pixels size in bytes.
-    <http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexSubImage2D.xml>`_
-    '''
     cgl.glTexSubImage2DSize(target, level, xoffset, yoffset, width, height,
-                             format, type, <GLvoid *><char *>pixels, size)
+                             format, type, <GLvoid *><char *>pixels, len(pixels))
 
 def glUniform1f(GLint location, GLfloat x):
     '''See: `glUniform1f() on Kronos website

@@ -24,6 +24,14 @@ cdef void __stdcall sdlTexImage2DSize(GLenum target, GLint level, GLint internal
     cgl.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels)
 
 
+cdef void __stdcall sdlGetUniformfvSize(GLuint program, GLint location, GLfloat* params, GLint size) nogil:
+    cgl.glGetUniformfv(program, location, params)
+
+
+cdef void __stdcall sdlGetUniformivSize(GLuint program, GLint location, GLint* params, GLint size) nogil:
+    cgl.glGetUniformiv(program, location, params)
+
+
 def init_backend():
     IF not USE_SDL2:
         raise TypeError('SDL2 is not available. Recompile with USE_SDL2=1')
@@ -160,3 +168,5 @@ def init_backend():
         cgl.glViewport = <GLVIEWPORTPTR>SDL_GL_GetProcAddress("glViewport")
         cgl.glTexSubImage2DSize = sdlTexSubImage2DSize
         cgl.glTexImage2DSize = sdlTexImage2DSize
+        cgl.glGetUniformfvSize = sdlGetUniformfvSize
+        cgl.glGetUniformivSize = sdlGetUniformivSize
