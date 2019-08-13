@@ -72,10 +72,8 @@ cdef void __stdcall pyodideReleaseShaderCompiler():
 cdef void __stdcall pyodideShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const GLvoid* binary, GLsizei length) with gil:
     pass
 cdef void __stdcall pyodideTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels) with gil:
-    from kivy.logger import Logger
     Logger.error("pyodideTexImage2D called. It's not supported by pyodide. Please call glTexImage2DSize instead")
 cdef void __stdcall pyodideTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels) with gil:
-    from kivy.logger import Logger
     Logger.error("pyodideTexSubImage2D called. It's not supported by pyodide. Please call glTexSubImage2DSize instead")
 cdef void __stdcall pyodideClearDepthf(GLclampf depth):
     pass
@@ -353,7 +351,6 @@ cdef void __stdcall pyodideGetAttachedShaders(GLuint program, GLsizei maxcount, 
         shader_ret_list[i] = id(shader)
 
     if len(shaders_list) > maxcount:
-        from kivy.logger import Logger
         Logger.error('pyodideGetAttachedShaders maxcount is too small to contain all the shaders')
     Logger.warn('after glGetAttachedShaders')
 
@@ -397,12 +394,10 @@ cdef void __stdcall pyodideShaderSource(
     Logger.warn('before glShaderSource')
     cdef bytes py_source
     if count < 1:
-        from kivy.logger import Logger
         Logger.error('pyodideShaderSource called with an empty array')
         Logger.warn('after glShaderSource')
         return
     elif count > 1:
-        from kivy.logger import Logger
         Logger.error(
             'pyodideShaderSource called with an array of more than 1 '
             'element, using only first element')
