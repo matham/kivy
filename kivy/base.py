@@ -18,6 +18,7 @@ __all__ = (
     'runTouchApp',
     'async_runTouchApp',
     'gen_runTouchApp',
+    'schedule_pyodide_TouchApp',
     'stopTouchApp',
 )
 
@@ -607,6 +608,20 @@ def gen_runTouchApp(widget=None, slave=False):
         yield from EventLoop.gen_mainloop()
     finally:
         stopTouchApp()
+
+
+def schedule_pyodide_TouchApp(widget=None, slave=False):
+    from js import window
+    runner = gen_runTouchApp(widget=widget, slave=slave)
+    timer = None
+
+    def step_pyodide_app(*largs, **kwargs):
+        nonlocal timer
+        try:
+            timer = window.setTimeout(step_pyodide_app, next(runner))
+        except StopIteration:
+            pass
+    timer = window.setTimeout(step_pyodide_app, 0)
 
 
 def stopTouchApp():

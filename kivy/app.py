@@ -976,6 +976,19 @@ Context.html#getFilesDir()>`_ is returned.
         yield from gen_runTouchApp()
         self.stop()
 
+    def schedule_pyodide_app(self):
+        from js import window
+        runner = self.gen_run()
+        timer = None
+
+        def step_pyodide_app(*largs, **kwargs):
+            nonlocal timer
+            try:
+                timer = window.setTimeout(step_pyodide_app, next(runner))
+            except StopIteration:
+                pass
+        timer = window.setTimeout(step_pyodide_app, 0)
+
     def stop(self, *largs):
         '''Stop the application.
 
