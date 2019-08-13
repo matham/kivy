@@ -32,24 +32,24 @@ def clear_pyodide_gl():
     pyodide_gl = None
 
 
-cdef inline carray.array get_float_array(GLsizei count, const GLfloat* v):
+cdef inline carray.array get_float_array(GLsizeiptr count, const GLfloat* v):
     cdef carray.array arr = array.array('f', [])
     carray.resize(arr, count)
     memcpy(arr.data.as_floats, v, count * sizeof(GLfloat))
     return arr
 
 
-cdef inline carray.array get_int_array(GLsizei count, const GLint* v):
+cdef inline carray.array get_int_array(GLsizeiptr count, const GLint* v):
     cdef carray.array arr = array.array('i', [])
     carray.resize(arr, count)
     memcpy(arr.data.as_ints, v, count * sizeof(GLint))
     return arr
 
 
-cdef inline carray.array get_char_array(GLsizei count, const GLchar* v):
-    cdef carray.array arr = array.array('b', [])
+cdef inline carray.array get_array(GLsizeiptr count, GLint type_bytes, str dtype, const GLchar* v):
+    cdef carray.array arr = array.array(dtype, [])
     carray.resize(arr, count)
-    memcpy(arr.data.as_chars, v, count * sizeof(GLchar))
+    memcpy(arr.data.as_chars, v, count * type_bytes * sizeof(GLchar))
     return arr
 
 
@@ -346,7 +346,7 @@ cdef void __stdcall pyodideGetActiveAttrib(GLuint program, GLuint index, GLsizei
         memcpy(name, c_str, bufsize - 1)
         length[0] = bufsize - 1
     else:
-        length[0] = len(py_str)
+        length[0] = <GLsizei>len(py_str)
         memcpy(name, c_str, length[0])
         name[length[0]] = 0
     Logger.warn('after glGetActiveAttrib')
@@ -367,7 +367,7 @@ cdef void __stdcall pyodideGetActiveUniform(GLuint program, GLuint index, GLsize
         memcpy(name, c_str, bufsize - 1)
         length[0] = bufsize - 1
     else:
-        length[0] = len(py_str)
+        length[0] = <GLsizei>len(py_str)
         memcpy(name, c_str, length[0])
         name[length[0]] = 0
     Logger.warn('after glGetActiveUniform')
@@ -376,7 +376,7 @@ cdef void __stdcall pyodideGetActiveUniform(GLuint program, GLuint index, GLsize
 cdef void __stdcall pyodideGetAttachedShaders(GLuint program, GLsizei maxcount, GLsizei* count, GLuint* shader_ret_list) with gil:
     Logger.warn('before glGetAttachedShaders')
     shaders_list = pyodide_gl.getAttachedShaders(programs[program])
-    count[0] = min(len(shaders_list), maxcount)
+    count[0] = min(<GLsizei>len(shaders_list), maxcount)
     for i in range(count[0]):
         shader = shaders_list[i]
         shader_ret_list[i] = id(shader)
@@ -403,7 +403,7 @@ cdef void __stdcall pyodideGetProgramInfoLog(GLuint program, GLsizei bufsize, GL
         memcpy(infolog, c_str, bufsize - 1)
         length[0] = bufsize - 1
     else:
-        length[0] = len(py_str)
+        length[0] = <GLsizei>len(py_str)
         memcpy(infolog, c_str, length[0])
         infolog[length[0]] = 0
     Logger.warn('after glGetProgramInfoLog')
@@ -478,7 +478,7 @@ cdef void __stdcall pyodideGetShaderInfoLog(GLuint shader, GLsizei bufsize, GLsi
         memcpy(infolog, c_str, bufsize - 1)
         length[0] = bufsize - 1
     else:
-        length[0] = len(py_str)
+        length[0] = <GLsizei>len(py_str)
         memcpy(infolog, c_str, length[0])
         infolog[length[0]] = 0
     Logger.warn('after glGetShaderInfoLog')
@@ -504,7 +504,7 @@ cdef void __stdcall pyodideGetShaderSource(GLuint shader, GLsizei bufsize, GLsiz
         memcpy(source, c_str, bufsize - 1)
         length[0] = bufsize - 1
     else:
-        length[0] = len(py_str)
+        length[0] = <GLsizei>len(py_str)
         memcpy(source, c_str, length[0])
         source[length[0]] = 0
     Logger.warn('after glGetShaderSource')
@@ -512,7 +512,17 @@ cdef void __stdcall pyodideGetShaderSource(GLuint shader, GLsizei bufsize, GLsiz
 
 cdef void __stdcall pyodideTexImage2DSize(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels, GLint size) with gil:
     Logger.warn('before glTexImage2DSize')
-    pyodide_gl.texImage2D(target, level, internalformat, width, height, border, format, type, get_char_array(size, <GLchar*>pixels), 0)
+    if type in (GL_UNSIGNED_BYTE, ):
+        arr = get_array(size, 1, 'B', <GLchar*>pixels)
+    elif type in (GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_5_5_5_1, GL_UNSIGNED_SHORT):  # GL_HALF_FLOAT_OES
+        arr = get_array(size // 2, 2, 'H', <GLchar*>pixels)
+    elif type in (GL_UNSIGNED_INT, ):  # GL_UNSIGNED_INT_24_8_WEBGL
+        arr = get_array(size // 4, 4, 'L', <GLchar*>pixels)
+    elif type in (GL_FLOAT, ):
+        arr = get_array(size // 4, 4, 'f', <GLchar*>pixels)
+    else:
+        assert False
+    pyodide_gl.texImage2D(target, level, internalformat, width, height, border, format, type, arr, 0)
     Logger.warn('after glTexImage2DSize')
 
 
@@ -542,7 +552,15 @@ cdef void __stdcall pyodideTexParameteriv(GLenum target, GLenum pname, GLint* pa
 
 cdef void __stdcall pyodideTexSubImage2DSize(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels, GLint size) with gil:
     Logger.warn('before glTexSubImage2DSize')
-    pyodide_gl.texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, get_char_array(size, <GLchar*>pixels), 0)
+    if type in (GL_UNSIGNED_BYTE, ):
+        arr = get_array(size, 1, 'B', <GLchar*>pixels)
+    elif type in (GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_5_5_5_1):  # GL_HALF_FLOAT_OES
+        arr = get_array(size // 2, 2, 'H', <GLchar*>pixels)
+    elif type in (GL_FLOAT, ):
+        arr = get_array(size // 4, 4, 'f', <GLchar*>pixels)
+    else:
+        assert False
+    pyodide_gl.texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, arr, 0)
     Logger.warn('after glTexSubImage2DSize')
 
 
@@ -606,13 +624,13 @@ cdef void __stdcall pyodideGenerateMipmap(GLenum target) with gil:
 
 cdef void __stdcall pyodideCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data) with gil:
     Logger.warn('before glCompressedTexImage2D')
-    pyodide_gl.compressedTexImage2D(target, level, internalformat, width, height, border, get_char_array(imageSize, <const GLchar*>data))
+    pyodide_gl.compressedTexImage2D(target, level, internalformat, width, height, border, get_array(imageSize, 1, 'B', <const GLchar*>data))
     Logger.warn('after glCompressedTexImage2D')
 
 
 cdef void __stdcall pyodideCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid* data) with gil:
     Logger.warn('before glCompressedTexSubImage2D')
-    pyodide_gl.compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, get_char_array(imageSize, <const GLchar*>data))
+    pyodide_gl.compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, get_array(imageSize, 1, 'B', <const GLchar*>data))
     Logger.warn('after glCompressedTexSubImage2D')
 
 
@@ -636,13 +654,13 @@ cdef void __stdcall pyodideFramebufferRenderbuffer(GLenum target, GLenum attachm
 
 cdef void __stdcall pyodideBufferData(GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage) with gil:
     Logger.warn('before glBufferData')
-    pyodide_gl.bufferData(target, get_char_array(size, <const GLchar*>data), usage)
+    pyodide_gl.bufferData(target, get_array(size, 1, 'B', <const GLchar*>data), usage)
     Logger.warn('after glBufferData')
 
 
 cdef void __stdcall pyodideBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid* data) with gil:
     Logger.warn('before glBufferSubData')
-    pyodide_gl.bufferSubData(target, offset, get_char_array(size, <const GLchar*>data))
+    pyodide_gl.bufferSubData(target, offset, get_array(size, 1, 'B', <const GLchar*>data))
     Logger.warn('after glBufferSubData')
 
 
@@ -961,6 +979,8 @@ cdef void __stdcall pyodideGetBooleanv(GLenum pname, GLboolean* params) with gil
         if _GL_GET_SIZE[pname] != 1:
             raise ValueError
         params[0] = id(pyodide_gl.getParameter(pname))
+    elif _GL_GET_SIZE[pname] == 1:
+        params[0] = pyodide_gl.getParameter(pname)
     else:
         res = pyodide_gl.getParameter(pname)
         if _GL_GET_SIZE[pname] != len(res):
@@ -981,6 +1001,8 @@ cdef void __stdcall pyodideGetFloatv(GLenum pname, GLfloat* params) with gil:
         if _GL_GET_SIZE[pname] != 1:
             raise ValueError
         params[0] = id(pyodide_gl.getParameter(pname))
+    elif _GL_GET_SIZE[pname] == 1:
+        params[0] = pyodide_gl.getParameter(pname)
     else:
         res = pyodide_gl.getParameter(pname)
         if _GL_GET_SIZE[pname] != len(res):
@@ -1001,6 +1023,8 @@ cdef void __stdcall pyodideGetIntegerv(GLenum pname, GLint* params) with gil:
         if _GL_GET_SIZE[pname] != 1:
             raise ValueError
         params[0] = id(pyodide_gl.getParameter(pname))
+    elif _GL_GET_SIZE[pname] == 1:
+        params[0] = pyodide_gl.getParameter(pname)
     else:
         res = pyodide_gl.getParameter(pname)
         if _GL_GET_SIZE[pname] != len(res):
