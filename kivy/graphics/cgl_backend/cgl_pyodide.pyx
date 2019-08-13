@@ -92,11 +92,9 @@ cdef void __stdcall pyodideVertexAttrib4fv(GLuint indx, GLfloat* values):
 cdef int __stdcall pyodideGetUniformLocation(GLuint program,  const GLchar* name) with gil:
     Logger.warn('before glGetUniformLocation')
     cdef int loc_id
-    cdef bytes py_name
-    py_name = name
-    loc = pyodide_gl.getUniformLocation(programs[program], py_name)
+    cdef bytes py_name = name
+    loc = pyodide_gl.getUniformLocation(programs[program], py_name.decode('utf8'))
     loc_id = id(loc)
-    assert loc_id not in locations
     locations[loc_id] = loc
     Logger.warn('after glGetUniformLocation')
     return loc_id
@@ -236,18 +234,16 @@ cdef void __stdcall pyodideAttachShader(GLuint program, GLuint shader) with gil:
 
 cdef int __stdcall pyodideGetAttribLocation(GLuint program, const GLchar* name) with gil:
     Logger.warn('before glGetAttribLocation')
-    cdef bytes py_name
-    py_name = name
-    res = pyodide_gl.getAttribLocation(programs[program], py_name)
+    cdef bytes py_name = name
+    res = pyodide_gl.getAttribLocation(programs[program], py_name.decode('utf8'))
     Logger.warn('after glGetAttribLocation')
     return res
 
 
 cdef void __stdcall pyodideBindAttribLocation(GLuint program, GLuint index, const GLchar* name) with gil:
     Logger.warn('before glBindAttribLocation')
-    cdef bytes py_name
-    py_name = name
-    pyodide_gl.bindAttribLocation(programs[program], index, py_name)
+    cdef bytes py_name = name
+    pyodide_gl.bindAttribLocation(programs[program], index, py_name.decode('utf8'))
     Logger.warn('after glBindAttribLocation')
 
 
@@ -308,7 +304,7 @@ cdef void __stdcall pyodideGetActiveAttrib(GLuint program, GLuint index, GLsizei
     size[0] = info.size
     type[0] = info.type
 
-    py_str = info.name
+    py_str = info.name.encode('utf8')
     c_str = py_str
     if len(py_str) >= bufsize:
         name[bufsize - 1] = 0
@@ -329,7 +325,7 @@ cdef void __stdcall pyodideGetActiveUniform(GLuint program, GLuint index, GLsize
     size[0] = info.size
     type[0] = info.type
 
-    py_str = info.name
+    py_str = info.name.encode('utf8')
     c_str = py_str
     if len(py_str) >= bufsize:
         name[bufsize - 1] = 0
@@ -365,7 +361,7 @@ cdef void __stdcall pyodideGetProgramInfoLog(GLuint program, GLsizei bufsize, GL
     Logger.warn('before glGetProgramInfoLog')
     cdef bytes py_str
     cdef char* c_str
-    py_str = pyodide_gl.getProgramInfoLog(programs[program])
+    py_str = pyodide_gl.getProgramInfoLog(programs[program]).encode('utf8')
     c_str = py_str
     if len(py_str) >= bufsize:
         infolog[bufsize - 1] = 0
@@ -406,7 +402,7 @@ cdef void __stdcall pyodideShaderSource(
         py_source = string[0]
     else:
         py_source = string[0][:length[0]]
-    pyodide_gl.shaderSource(shaders[shader], py_source)
+    pyodide_gl.shaderSource(shaders[shader], py_source.decode('utf8'))
     Logger.warn('after glShaderSource')
 
 
@@ -432,7 +428,7 @@ cdef void __stdcall pyodideDeleteShader(GLuint shader) with gil:
 
 cdef void __stdcall pyodideGetShaderiv(GLuint shader, GLenum pname, GLint* params) with gil:
     Logger.warn('before glGetShaderiv')
-    params[0] = pyodide_gl.getShaderParameter(shaders[shader], pname)
+    params[0] = <GLint>pyodide_gl.getShaderParameter(shaders[shader], pname)
     Logger.warn('after glGetShaderiv')
 
 
@@ -440,7 +436,7 @@ cdef void __stdcall pyodideGetShaderInfoLog(GLuint shader, GLsizei bufsize, GLsi
     Logger.warn('before glGetShaderInfoLog')
     cdef bytes py_str
     cdef char* c_str
-    py_str = pyodide_gl.getShaderInfoLog(shaders[shader])
+    py_str = pyodide_gl.getShaderInfoLog(shaders[shader]).encode('utf8')
     c_str = py_str
     if len(py_str) >= bufsize:
         infolog[bufsize - 1] = 0
@@ -466,7 +462,7 @@ cdef void __stdcall pyodideGetShaderSource(GLuint shader, GLsizei bufsize, GLsiz
     Logger.warn('before glGetShaderSource')
     cdef bytes py_str
     cdef char* c_str
-    py_str = pyodide_gl.getShaderSource(shaders[shader])
+    py_str = pyodide_gl.getShaderSource(shaders[shader]).encode('utf8')
     c_str = py_str
     if len(py_str) >= bufsize:
         source[bufsize - 1] = 0
@@ -762,7 +758,7 @@ cdef void __stdcall pyodideGenRenderbuffers(GLsizei n, GLuint* renderbuffer_list
 cdef const GLubyte* __stdcall pyodideGetString(GLenum name) with gil:
     Logger.warn('before glGetString')
     cdef char* val_c
-    cdef bytes val = pyodide_gl.getParameter(name)
+    cdef bytes val = pyodide_gl.getParameter(name).encode('utf8')
     if val in gl_strings:
         # it's the same string, but we have make sure it's the same object so
         # we can share the pointer
@@ -930,7 +926,7 @@ cdef void __stdcall pyodideGetFloatv(GLenum pname, GLfloat* params) with gil:
 
 cdef void __stdcall pyodideGetIntegerv(GLenum pname, GLint* params) with gil:
     Logger.warn('before glGetIntegerv')
-    params[0] = pyodide_gl.getParameter(pname)
+    params[0] = <GLint>pyodide_gl.getParameter(pname)
     Logger.warn('after glGetIntegerv')
 
 
