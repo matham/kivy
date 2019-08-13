@@ -1,7 +1,5 @@
 """
 CGL/pyodide: GL backend implementation using Pyodide.
-
-# TODO: implement pyodideReadPixels
 """
 
 include "../common.pxi"
@@ -11,6 +9,7 @@ from libc.string cimport memcpy, strcpy, strlen
 import array
 from kivy.logger import Logger
 from kivy.graphics.cgl cimport *
+from ..opengl import _GL_GET_SIZE
 cdef object pyodide_gl = None
 
 __all__ = ('set_pyodide_gl', 'clear_pyodide_gl', 'is_backend_supported')
@@ -65,14 +64,16 @@ cdef dict frame_buffers = {}
 cdef dict gl_strings = {}
 
 
-cdef void __stdcall pyodideReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid* pixels) with gil:
-    pass
 cdef void __stdcall pyodideReleaseShaderCompiler():
     pass
 cdef void __stdcall pyodideShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const GLvoid* binary, GLsizei length) with gil:
     pass
+cdef void __stdcall pyodideGetUniformfv(GLuint program, GLint location, GLfloat* params) with gil:
+    Logger.error("glGetUniformfv called. It's not supported by pyodide. Please call glGetUniformfvSize instead")
+cdef void __stdcall pyodideGetUniformiv(GLuint program, GLint location, GLint* params) with gil:
+    Logger.error("glGetUniformiv called. It's not supported by pyodide. Please call glGetUniformivSize instead")
 cdef void __stdcall pyodideTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels) with gil:
-    Logger.error("pyodideTexImage2D called. It's not supported by pyodide. Please call glTexImage2DSize instead")
+    Logger.error("glTexImage2D called. It's not supported by pyodide. Please call glTexImage2DSize instead")
 cdef void __stdcall pyodideTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels) with gil:
     Logger.error("pyodideTexSubImage2D called. It's not supported by pyodide. Please call glTexSubImage2DSize instead")
 cdef void __stdcall pyodideClearDepthf(GLclampf depth):
@@ -87,6 +88,24 @@ cdef void __stdcall pyodideVertexAttrib3fv(GLuint indx, GLfloat* values):
     pass
 cdef void __stdcall pyodideVertexAttrib4fv(GLuint indx, GLfloat* values):
     pass
+
+
+cdef void __stdcall pyodideReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid* pixels) with gil:
+    cdef carray.array arr = array.array('B', [])
+    cdef int size
+    assert format in (GL_RGB, GL_RGBA)
+    assert type == GL_UNSIGNED_BYTE
+
+    size = width * height * sizeof(GLubyte)
+    if format == GL_RGB:
+        size *= 3
+    else:
+        size *= 4
+
+    carray.resize(arr, size)
+    pyodide_gl.pixelStorei(GL_PACK_ALIGNMENT, 1)
+    pyodide_gl.readPixels(x, y, width, height, format, type, arr)
+    memcpy(pixels, arr.data.as_uchars, size)
 
 
 cdef int __stdcall pyodideGetUniformLocation(GLuint program,  const GLchar* name) with gil:
@@ -214,16 +233,32 @@ cdef void __stdcall pyodideUniformMatrix4fv(GLint location, GLsizei count, GLboo
     Logger.warn('after glUniformMatrix4fv')
 
 
-cdef void __stdcall pyodideGetUniformfv(GLuint program, GLint location, GLfloat* params) with gil:
-    Logger.warn('before glGetUniformfv')
-    params[0] = pyodide_gl.getUniform(programs[program], locations[location])
-    Logger.warn('after glGetUniformfv')
+cdef void __stdcall pyodideGetUniformfvSize(GLuint program, GLint location, GLfloat* params, GLint size) with gil:
+    Logger.warn('before glGetUniformfvSize')
+    cdef int i
+    cdef GLfloat val
+    res = pyodide_gl.getUniform(programs[program], locations[location])
+
+    if size == 1:
+        params[0] = res
+    else:
+        for i, val in enumerate(res):
+            params[i] = val
+    Logger.warn('after glGetUniformfvSize')
 
 
-cdef void __stdcall pyodideGetUniformiv(GLuint program, GLint location, GLint* params) with gil:
-    Logger.warn('before glGetUniformiv')
-    params[0] = pyodide_gl.getUniform(programs[program], locations[location])
-    Logger.warn('after glGetUniformiv')
+cdef void __stdcall pyodideGetUniformivSize(GLuint program, GLint location, GLint* params, GLint size) with gil:
+    Logger.warn('before glGetUniformivSize')
+    cdef int i
+    cdef GLint val
+    res = pyodide_gl.getUniform(programs[program], locations[location])
+
+    if size == 1:
+        params[0] = res
+    else:
+        for i, val in enumerate(res):
+            params[i] = val
+    Logger.warn('after glGetUniformivSize')
 
 
 cdef void __stdcall pyodideAttachShader(GLuint program, GLuint shader) with gil:
@@ -538,7 +573,10 @@ cdef void __stdcall pyodideGetBufferParameteriv(GLenum target, GLenum pname, GLi
 
 cdef void __stdcall pyodideGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment, GLenum pname, GLint* params) with gil:
     Logger.warn('before glGetFramebufferAttachmentParameteriv')
-    params[0] = pyodide_gl.getFramebufferAttachmentParameter(target, attachment, pname)
+    if pname == GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME:
+        params[0] = id(pyodide_gl.getFramebufferAttachmentParameter(target, attachment, pname))
+    else:
+        params[0] = pyodide_gl.getFramebufferAttachmentParameter(target, attachment, pname)
     Logger.warn('after glGetFramebufferAttachmentParameteriv')
 
 
@@ -914,37 +952,86 @@ cdef void __stdcall pyodideFrontFace(GLenum mode) with gil:
 
 cdef void __stdcall pyodideGetBooleanv(GLenum pname, GLboolean* params) with gil:
     Logger.warn('before glGetBooleanv')
-    params[0] = pyodide_gl.getParameter(pname)
+    cdef GLboolean val
+    cdef int i
+    if pname in (GL_ARRAY_BUFFER_BINDING, GL_CURRENT_PROGRAM,
+            GL_ELEMENT_ARRAY_BUFFER_BINDING, GL_FRAMEBUFFER_BINDING,
+            GL_RENDERBUFFER_BINDING, GL_TEXTURE_BINDING_2D,
+            GL_TEXTURE_BINDING_CUBE_MAP):
+        if _GL_GET_SIZE[pname] != 1:
+            raise ValueError
+        params[0] = id(pyodide_gl.getParameter(pname))
+    else:
+        res = pyodide_gl.getParameter(pname)
+        if _GL_GET_SIZE[pname] != len(res):
+            raise ValueError
+        for i, val in enumerate(res):
+            params[i] = val
     Logger.warn('after glGetBooleanv')
 
 
 cdef void __stdcall pyodideGetFloatv(GLenum pname, GLfloat* params) with gil:
     Logger.warn('before glGetFloatv')
-    params[0] = pyodide_gl.getParameter(pname)
+    cdef GLfloat val
+    cdef int i
+    if pname in (GL_ARRAY_BUFFER_BINDING, GL_CURRENT_PROGRAM,
+            GL_ELEMENT_ARRAY_BUFFER_BINDING, GL_FRAMEBUFFER_BINDING,
+            GL_RENDERBUFFER_BINDING, GL_TEXTURE_BINDING_2D,
+            GL_TEXTURE_BINDING_CUBE_MAP):
+        if _GL_GET_SIZE[pname] != 1:
+            raise ValueError
+        params[0] = id(pyodide_gl.getParameter(pname))
+    else:
+        res = pyodide_gl.getParameter(pname)
+        if _GL_GET_SIZE[pname] != len(res):
+            raise ValueError
+        for i, val in enumerate(res):
+            params[i] = val
     Logger.warn('after glGetFloatv')
 
 
 cdef void __stdcall pyodideGetIntegerv(GLenum pname, GLint* params) with gil:
-    try:
-        Logger.warn('before glGetIntegerv {}'.format(pname))
+    Logger.warn('before glGetIntegerv {}'.format(pname))
+    cdef GLint val
+    cdef int i
+    if pname in (GL_ARRAY_BUFFER_BINDING, GL_CURRENT_PROGRAM,
+            GL_ELEMENT_ARRAY_BUFFER_BINDING, GL_FRAMEBUFFER_BINDING,
+            GL_RENDERBUFFER_BINDING, GL_TEXTURE_BINDING_2D,
+            GL_TEXTURE_BINDING_CUBE_MAP):
+        if _GL_GET_SIZE[pname] != 1:
+            raise ValueError
+        params[0] = id(pyodide_gl.getParameter(pname))
+    else:
         res = pyodide_gl.getParameter(pname)
-        print('cheeeeese', res)
-        params[0] = res
-        Logger.warn('after glGetIntegerv')
-    except Exception as e:
-        Logger.exception(e)
-        raise
+        if _GL_GET_SIZE[pname] != len(res):
+            raise ValueError
+        for i, val in enumerate(res):
+            params[i] = val
+    Logger.warn('after glGetIntegerv')
 
 
 cdef void __stdcall pyodideGetVertexAttribfv(GLuint index, GLenum pname, GLfloat* params) with gil:
     Logger.warn('before glGetVertexAttribfv')
-    params[0] = pyodide_gl.getVertexAttrib(index, pname)
+    cdef GLfloat fval
+    cdef int i
+    if pname == GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING:
+        params[0] = id(pyodide_gl.getVertexAttrib(index, pname))
+    elif pname == GL_CURRENT_VERTEX_ATTRIB:
+        for i, fval in enumerate(pyodide_gl.getVertexAttrib(index, pname)):
+            params[i] = fval
+    else:
+        params[0] = pyodide_gl.getVertexAttrib(index, pname)
     Logger.warn('after glGetVertexAttribfv')
 
 
 cdef void __stdcall pyodideGetVertexAttribiv(GLuint index, GLenum pname, GLint* params) with gil:
     Logger.warn('before glGetVertexAttribiv')
-    params[0] = pyodide_gl.getVertexAttrib(index, pname)
+    if pname == GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING:
+        params[0] = id(pyodide_gl.getVertexAttrib(index, pname))
+    elif pname == GL_CURRENT_VERTEX_ATTRIB:
+        raise ValueError('Call glGetVertexAttribfv instead of glGetVertexAttribiv for GL_CURRENT_VERTEX_ATTRIB')
+    else:
+        params[0] = pyodide_gl.getVertexAttrib(index, pname)
     Logger.warn('after glGetVertexAttribiv')
 
 
@@ -1123,7 +1210,9 @@ def init_backend():
     cgl.glGetTexParameterfv = pyodideGetTexParameterfv
     cgl.glGetTexParameteriv = pyodideGetTexParameteriv
     cgl.glGetUniformfv = pyodideGetUniformfv
+    cgl.glGetUniformfvSize = pyodideGetUniformfvSize
     cgl.glGetUniformiv = pyodideGetUniformiv
+    cgl.glGetUniformivSize = pyodideGetUniformivSize
     cgl.glGetUniformLocation = pyodideGetUniformLocation
     cgl.glGetVertexAttribfv = pyodideGetVertexAttribfv
     cgl.glGetVertexAttribiv = pyodideGetVertexAttribiv
