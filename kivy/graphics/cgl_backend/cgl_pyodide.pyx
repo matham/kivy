@@ -428,7 +428,7 @@ cdef void __stdcall pyodideDeleteShader(GLuint shader) with gil:
 
 cdef void __stdcall pyodideGetShaderiv(GLuint shader, GLenum pname, GLint* params) with gil:
     Logger.warn('before glGetShaderiv')
-    params[0] = <GLint>pyodide_gl.getShaderParameter(shaders[shader], pname)
+    params[0] = pyodide_gl.getShaderParameter(shaders[shader], pname)
     Logger.warn('after glGetShaderiv')
 
 
@@ -925,9 +925,15 @@ cdef void __stdcall pyodideGetFloatv(GLenum pname, GLfloat* params) with gil:
 
 
 cdef void __stdcall pyodideGetIntegerv(GLenum pname, GLint* params) with gil:
-    Logger.warn('before glGetIntegerv')
-    params[0] = <GLint>pyodide_gl.getParameter(pname)
-    Logger.warn('after glGetIntegerv')
+    try:
+        Logger.warn('before glGetIntegerv {}'.format(pname))
+        res = pyodide_gl.getParameter(pname)
+        print('cheeeeese', res)
+        params[0] = res
+        Logger.warn('after glGetIntegerv')
+    except Exception as e:
+        Logger.exception(e)
+        raise
 
 
 cdef void __stdcall pyodideGetVertexAttribfv(GLuint index, GLenum pname, GLfloat* params) with gil:
