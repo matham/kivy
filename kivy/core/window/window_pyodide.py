@@ -62,7 +62,7 @@ class WindowPyodide(WindowBase):
     def _js_convert_mouse(self, event):
         h = self.system_size[1]
         x = event.offsetX
-        y = h - event.offsetY
+        y = event.offsetY
         button = event.button
         # Disable the right-click context menu in some browsers
         if button == 2:
