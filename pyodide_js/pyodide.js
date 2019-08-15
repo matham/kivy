@@ -6,7 +6,7 @@ var languagePluginLoader = new Promise((resolve, reject) => {
   // This is filled in by the Makefile to be either a local file or the
   // deployed location. TODO: This should be done in a less hacky
   // way.
-  var baseURL = self.languagePluginUrl || '';
+  var baseURL = self.languagePluginUrl || 'https://pyodide.cdn.iodide.io/';
   baseURL = baseURL.substr(0, baseURL.lastIndexOf('/')) + '/';
 
   ////////////////////////////////////////////////////////////
@@ -289,7 +289,7 @@ var languagePluginLoader = new Promise((resolve, reject) => {
 
   ////////////////////////////////////////////////////////////
   // Loading Pyodide
-  let wasmURL = `${baseURL}kpyodide.asm.wasm`;
+  let wasmURL = `${baseURL}pyodide.asm.wasm`;
   let Module = {};
   self.Module = Module;
 
@@ -353,9 +353,9 @@ var languagePluginLoader = new Promise((resolve, reject) => {
 
   Promise.all([ postRunPromise, dataLoadPromise ]).then(() => resolve());
 
-  const data_script_src = `${baseURL}kpyodide.asm.data.js`;
+  const data_script_src = `${baseURL}pyodide.asm.data.js`;
   loadScript(data_script_src, () => {
-    const scriptSrc = `${baseURL}kpyodide.asm.js`;
+    const scriptSrc = `https://cdn.jsdelivr.net/gh/matham/kivy@pyodide_serve/pyodide_js/pyodide.asm.js`;
     loadScript(scriptSrc, () => {
       // The emscripten module needs to be at this location for the core
       // filesystem to install itself. Once that's complete, it will be replaced
