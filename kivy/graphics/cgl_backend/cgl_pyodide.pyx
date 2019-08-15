@@ -530,15 +530,15 @@ cdef void __stdcall pyodideBufferSubData(GLenum target, GLintptr offset, GLsizei
 
 
 cdef void __stdcall pyodideBindBuffer(GLenum target, GLuint buffer) with gil:
-    pyodide_gl.bindBuffer(target, buffers[buffer])
+    pyodide_gl.bindBuffer(target, None if not buffer else buffers[buffer])
 
 
 cdef void __stdcall pyodideBindFramebuffer(GLenum target, GLuint framebuffer) with gil:
-    pyodide_gl.bindFramebuffer(target, frame_buffers[framebuffer])
+    pyodide_gl.bindFramebuffer(target, None if not framebuffer else frame_buffers[framebuffer])
 
 
 cdef void __stdcall pyodideBindRenderbuffer(GLenum target, GLuint renderbuffer) with gil:
-    pyodide_gl.bindRenderbuffer(target, render_buffers[renderbuffer])
+    pyodide_gl.bindRenderbuffer(target, None if not renderbuffer else render_buffers[renderbuffer])
 
 
 cdef void __stdcall pyodideFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) with gil:
@@ -546,7 +546,7 @@ cdef void __stdcall pyodideFramebufferTexture2D(GLenum target, GLenum attachment
 
 
 cdef void __stdcall pyodideBindTexture(GLenum target, GLuint texture) with gil:
-    pyodide_gl.bindTexture(target, textures[texture])
+    pyodide_gl.bindTexture(target, None if not texture else textures[texture])
 
 
 cdef void __stdcall pyodideGenTextures(GLsizei n, GLuint* texture_list) with gil:

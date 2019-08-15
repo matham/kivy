@@ -39,9 +39,9 @@ class WindowPyodide(WindowBase):
             getattr(context, 'backendStorePixelRatio', 0) or
             1
         )
-        self._density = (
-            getattr(js_window, 'devicePixelRatio', 0) or 1) / backing_store
-        self.dpi = self._density * 96.
+        # self._density = (
+        #     getattr(js_window, 'devicePixelRatio', 0) or 1) / backing_store
+        # self.dpi = self._density * 96.
 
         set_pyodide_gl(self._pyodide_gl)
         super().initialize_gl()
@@ -77,9 +77,9 @@ class WindowPyodide(WindowBase):
         return x, y, button
 
     def _js_handle_mouse_down_event(self, event):
-        Logger.info(
-            f'down: {event}, {event.offsetX}, {event.offsetY}, {event.button}'
-        )
+        # Logger.info(
+        #     f'down: {event}, {event.offsetX}, {event.offsetY}, {event.button}'
+        # )
         x, y, button = self._js_convert_mouse(event)
         self._mouse_buttons_down.add(button)
         self._mouse_x = x
@@ -88,9 +88,9 @@ class WindowPyodide(WindowBase):
         return False
 
     def _js_handle_mouse_up_event(self, event):
-        Logger.info(
-            f'up: {event}, {event.offsetX}, {event.offsetY}, {event.button}'
-        )
+        #Logger.info(
+        #    f'up: {event}, {event.offsetX}, {event.offsetY}, {event.button}'
+        #)
         x, y, button = self._js_convert_mouse(event)
         if button in self._mouse_buttons_down:
             self._mouse_buttons_down.remove(button)
@@ -100,9 +100,9 @@ class WindowPyodide(WindowBase):
         return False
 
     def _js_handle_mouse_move_event(self, event):
-        Logger.info(
-            f'move: {event}, {event.offsetX}, {event.offsetY}, {event.button}'
-        )
+        #Logger.info(
+        #    f'move: {event}, {event.offsetX}, {event.offsetY}, {event.button}'
+        #)
         x, y, button = self._js_convert_mouse(event)
         self._mouse_x = x
         self._mouse_y = y
@@ -113,7 +113,7 @@ class WindowPyodide(WindowBase):
         return False
 
     def _js_handle_mouse_wheel_event(self, event):
-        Logger.info(f'wheel: {event}, {event.deltaX}, {event.deltaY}')
+        #Logger.info(f'wheel: {event}, {event.deltaX}, {event.deltaY}')
         if event.deltaY:
             button = 'scrolldown'
             if event.deltaY >= 0:
