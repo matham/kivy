@@ -829,7 +829,7 @@ if not environ.get('KIVY_DOC_INCLUDE'):
 
         elif version == 7:
             # desktop bool indicating whether to use desktop specific features
-            is_desktop = int(platform in ('win', 'macosx', 'linux'))
+            is_desktop = int(platform in ('win', 'macosx', 'linux', 'emscripten'))
             Config.setdefault('kivy', 'desktop', is_desktop)
             Config.setdefault('postproc', 'triple_tap_distance', '20')
             Config.setdefault('postproc', 'triple_tap_time', '375')

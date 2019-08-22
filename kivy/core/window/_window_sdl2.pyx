@@ -75,6 +75,22 @@ cdef class _WindowSDL2Storage:
 
     def setup_window(self, x, y, width, height, borderless, fullscreen,
                      resizable, state, gl_backend):
+        if platform == 'emscripten':
+            from js import iodide, pyodide
+            # emscripten-sdl2 requires that a canvas with this name exists in the js Module
+            # That's what it draws onto and uses for sizing etc.
+            Logger.info('Window: Creating iodide canvas')
+            canvas = pyodide._module.canvas = iodide.output.element('canvas')
+            # so that it is focusable
+            canvas.tabIndex = 1
+            SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, b'#canvas')
+
+            # gl backend can be either sdl2 or pyodide. In the latter case we need the webgl context
+            if gl_backend == "pyodide":
+                from kivy.graphics.cgl_backend.cgl_pyodide import set_pyodide_gl
+                Logger.info('Window: Creating pyodide webgl2 context')
+                set_pyodide_gl(canvas.getContext("webgl2"))
+
         self.win_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI
 
         if USE_IOS:

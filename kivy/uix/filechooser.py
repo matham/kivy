@@ -811,7 +811,7 @@ class FileChooserController(RelativeLayout):
         else:
             if platform == 'win':
                 is_root = splitdrive(path)[1] in (sep, altsep)
-            elif platform in ('macosx', 'linux', 'android', 'ios'):
+            elif platform in ('macosx', 'linux', 'android', 'ios', 'emscripten'):
                 is_root = normpath(expanduser(path)) == sep
             else:
                 # Unknown fs, just always add the .. entry but also log

@@ -143,6 +143,8 @@ mali_paths = (
     '/usr/local/mali-egl/libmali.so')
 if any((exists(path) for path in mali_paths)):
     platform = 'mali'
+if environ.get('EMSCRIPTEN', None) and environ.get('EMSDK', None):
+    platform = 'emscripten'
 
 # Needed when cross-compiling
 if environ.get('KIVY_CROSS_PLATFORM'):
@@ -156,7 +158,6 @@ c_options['use_rpi'] = platform == 'rpi'
 c_options['use_egl'] = False
 c_options['use_opengl_es2'] = None
 c_options['use_opengl_mock'] = environ.get('READTHEDOCS', None) == 'True'
-c_options['use_opengl_pyodide'] = None
 c_options['use_sdl2'] = None
 c_options['use_pangoft2'] = None
 c_options['use_ios'] = False
@@ -388,7 +389,7 @@ except ImportError:
 
 # Detect which opengl version headers to use
 if platform in ('android', 'darwin', 'ios', 'rpi', 'mali', 'vc') or \
-        c_options['use_opengl_pyodide']:
+        platform == 'emscripten':
     c_options['use_opengl_es2'] = True
 elif c_options['use_opengl_es2'] is None:
     c_options['use_opengl_es2'] = \
@@ -415,6 +416,9 @@ elif platform == 'darwin':
             print("OSX framework used, force to x86_64 only")
             environ["ARCHFLAGS"] = environ.get("ARCHFLAGS", "-arch x86_64")
             print("OSX ARCHFLAGS are: {}".format(environ["ARCHFLAGS"]))
+
+elif platform == 'emscripten':
+    c_options['use_sdl2'] = True
 
 # detect gstreamer, only on desktop
 # works if we forced the options or in autodetection
@@ -468,6 +472,8 @@ if c_options['use_sdl2'] or (
         platform not in ('android',) and c_options['use_sdl2'] is None):
 
     sdl2_valid = False
+    if platform == 'emscripten':
+        sdl2_valid = True
     if c_options['use_osx_frameworks'] and platform == 'darwin':
         # check the existence of frameworks
         sdl2_valid = True
@@ -607,7 +613,7 @@ def determine_gl_flags():
     base_flags = {'include_dirs': [kivy_graphics_include], 'libraries': []}
     cross_sysroot = environ.get('KIVY_CROSS_SYSROOT')
 
-    if c_options['use_opengl_mock'] or c_options['use_opengl_pyodide']:
+    if c_options['use_opengl_mock']:
         return flags, base_flags
     if platform == 'win32':
         flags['libraries'] = ['opengl32', 'glew32']
@@ -666,6 +672,8 @@ def determine_gl_flags():
         flags['libraries'] = ['GLESv2']
         c_options['use_x11'] = True
         c_options['use_egl'] = True
+    elif platform == 'emscripten':
+        flags['libraries'] = ['GLESv2']
     else:
         flags['libraries'] = ['GL']
     return flags, base_flags

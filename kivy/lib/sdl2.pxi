@@ -453,6 +453,7 @@ cdef extern from "SDL.h":
     cdef char *SDL_HINT_ORIENTATIONS
     cdef char *SDL_HINT_VIDEO_WIN_D3DCOMPILER
     cdef char *SDL_HINT_ACCELEROMETER_AS_JOYSTICK
+    cdef char *SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT
     cdef char *SDL_HINT_ANDROID_TRAP_BACK_BUTTON
 
     cdef int SDL_QUERY               = -1
