@@ -33,6 +33,7 @@ cdef class _WindowSDL2Storage:
     cdef SDL_Surface *icon
     cdef int win_flags
     cdef object event_filter
+    cdef object pyodide_canvas
 
     def __cinit__(self):
         self.win = NULL
@@ -40,6 +41,7 @@ cdef class _WindowSDL2Storage:
         self.surface = NULL
         self.win_flags = 0
         self.event_filter = None
+        self.pyodide_canvas = None
 
     def set_event_filter(self, event_filter):
         self.event_filter = event_filter
@@ -73,23 +75,38 @@ cdef class _WindowSDL2Storage:
     def die(self):
         raise RuntimeError(<bytes> SDL_GetError())
 
+    def _js_ignore_event(self, event):
+        event.preventDefault()
+        return False
+
+    def init_pyodide(self, gl_backend):
+        from js import iodide, pyodide, document
+        Logger.info('Window: Creating iodide canvas')
+        div = iodide.output.element('div')
+        div.id = 'kivy_sdl2_win_div'
+        div.addEventListener('contextmenu', self._js_ignore_event)
+
+        # emscripten-sdl2 requires that a canvas with this name exists in the js Module
+        # That's what it draws onto and uses for sizing etc.
+        canvas = pyodide._module.canvas = document.createElement('canvas')
+        self.pyodide_canvas = canvas
+        # so that it is focusable
+        canvas.id = 'kivy_sdl2_win_canvas'
+        canvas.tabIndex = 1
+        canvas.setAttribute('tabindex', '1')
+        SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, b'kivy_sdl2_win_canvas')
+        div.appendChild(canvas)
+
+        # gl backend can be either sdl2 or pyodide. In the latter case we need the webgl context
+        if gl_backend == "pyodide":
+            from kivy.graphics.cgl_backend.cgl_pyodide import set_pyodide_gl
+            Logger.info('Window: Creating pyodide webgl2 context')
+            set_pyodide_gl(canvas.getContext("webgl2"))
+
     def setup_window(self, x, y, width, height, borderless, fullscreen,
                      resizable, state, gl_backend):
         if platform == 'emscripten':
-            from js import iodide, pyodide
-            # emscripten-sdl2 requires that a canvas with this name exists in the js Module
-            # That's what it draws onto and uses for sizing etc.
-            Logger.info('Window: Creating iodide canvas')
-            canvas = pyodide._module.canvas = iodide.output.element('canvas')
-            # so that it is focusable
-            canvas.tabIndex = 1
-            SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, b'#canvas')
-
-            # gl backend can be either sdl2 or pyodide. In the latter case we need the webgl context
-            if gl_backend == "pyodide":
-                from kivy.graphics.cgl_backend.cgl_pyodide import set_pyodide_gl
-                Logger.info('Window: Creating pyodide webgl2 context')
-                set_pyodide_gl(canvas.getContext("webgl2"))
+            self.init_pyodide(gl_backend)
 
         self.win_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI
 
@@ -565,6 +582,8 @@ cdef class _WindowSDL2Storage:
             y = event.button.y
             button = event.button.button
             action = 'mousebuttondown' if event.type == SDL_MOUSEBUTTONDOWN else 'mousebuttonup'
+            if self.pyodide_canvas is not None and event.type == SDL_MOUSEBUTTONDOWN:
+                self.pyodide_canvas.focus()
             return (action, x, y, button)
         elif event.type == SDL_MOUSEWHEEL:
             x = event.wheel.x
@@ -585,6 +604,8 @@ cdef class _WindowSDL2Storage:
             x = event.tfinger.x
             y = event.tfinger.y
             action = 'fingerdown' if event.type == SDL_FINGERDOWN else 'fingerup'
+            if self.pyodide_canvas is not None and event.type == SDL_FINGERDOWN:
+                self.pyodide_canvas.focus()
             return (action, fid, x, y)
         elif event.type == SDL_JOYAXISMOTION:
             return (
