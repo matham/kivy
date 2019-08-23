@@ -43,7 +43,7 @@ def init():
         return
 
     cdef int ret
-    for flags in (IMG_INIT_JPG, IMG_INIT_PNG, IMG_INIT_TIF, IMG_INIT_WEBP):
+    for flags in (IMG_INIT_PNG, IMG_INIT_TIF, IMG_INIT_WEBP):
         ret = IMG_Init(flags)
         if ret & flags != flags:
             # FIXME replace flags by a good string
@@ -105,14 +105,10 @@ def save(filename, w, h, pixelfmt, pixels, flipped, imagefmt, quality=90):
     if c_filename is not None:
         if imagefmt == "png":
             IMG_SavePNG(image, c_filename)
-        elif imagefmt == "jpg":
-            IMG_SaveJPG(image, c_filename, quality)
     else:
         rwops = rwops_bridge_to_bytesio(filename)
         if imagefmt == "png":
             IMG_SavePNG_RW(image, rwops, 1)
-        elif imagefmt == "jpg":
-            IMG_SaveJPG_RW(image, rwops, 1, quality)
         SDL_FreeRW(rwops)
 
     if image:
